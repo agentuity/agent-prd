@@ -155,41 +155,54 @@ export default async function ProductOrchestrator(
 				});
 			}
 
-			// Create a custom stream that captures the response for storage
-			const captureStream = async function* () {
-				// Stream text chunks as they arrive
-				for await (const chunk of result.textStream) {
-					fullResponse += chunk;
-					yield chunk;
+			// Create a ReadableStream to handle streaming and cleanup
+			const readableStream = new ReadableStream({
+				async start(controller) {
+					try {
+						const encoder = new TextEncoder();
+						
+						// Stream text chunks as they arrive
+						for await (const chunk of result.textStream) {
+							fullResponse += chunk;
+							controller.enqueue(encoder.encode(chunk));
+						}
+
+						// After streaming is complete, save conversation and send metadata
+						conversationContext.messages.push({
+							role: 'assistant',
+							content: fullResponse,
+							timestamp: new Date().toISOString()
+						});
+
+						// Save to KV storage outside the stream context
+						try {
+							await ctx.kv.set(KV_NAMESPACE, contextKey, conversationContext);
+							ctx.logger.info('Conversation saved to KV', { sessionId, messageCount: conversationContext.messages.length });
+						} catch (error) {
+							ctx.logger.error('Failed to save conversation', { error });
+						}
+
+						// Send final metadata chunk
+						const metadata = {
+							type: 'metadata',
+							sessionId,
+							conversationHistory: conversationContext.messages.slice(-10), // Last 10 messages
+							needsApproval: false
+						};
+						
+						const metadataChunk = '\n__AGENTPRD_METADATA__\n' + JSON.stringify(metadata);
+						controller.enqueue(encoder.encode(metadataChunk));
+						
+						// Close the stream
+						controller.close();
+					} catch (error) {
+						ctx.logger.error("Error processing stream", { error });
+						controller.error(error);
+					}
 				}
+			});
 
-				// Save the assistant response 
-				// Tool executions are handled automatically by the AI SDK
-				conversationContext.messages.push({
-					role: 'assistant',
-					content: fullResponse,
-					timestamp: new Date().toISOString()
-				});
-
-				try {
-					await ctx.kv.set(KV_NAMESPACE, contextKey, conversationContext);
-					ctx.logger.info('Conversation saved to KV', { sessionId, messageCount: conversationContext.messages.length });
-				} catch (error) {
-					ctx.logger.error('Failed to save conversation', { error });
-				}
-
-				// Send final metadata chunk as JSON delimited by special markers
-				const metadata = {
-					type: 'metadata',
-					sessionId,
-					conversationHistory: conversationContext.messages.slice(-10), // Last 10 messages
-					needsApproval: false
-				};
-				
-				yield '\n__AGENTPRD_METADATA__\n' + JSON.stringify(metadata);
-			};
-
-			return resp.stream(captureStream());
+			return resp.stream(readableStream);
 		} else {
 			// For other channels (email, Discord, etc.), collect full response
 			let fullResponse = '';
