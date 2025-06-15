@@ -116,7 +116,7 @@ export class AgentClient {
 
       // Add timeout to prevent hanging
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout
 
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -148,7 +148,7 @@ export class AgentClient {
       // Handle both JSON and text responses
       let agentResponse: AgentResponse;
       const responseText = await response.text();
-      
+
       try {
         agentResponse = JSON.parse(responseText) as AgentResponse;
       } catch {
@@ -239,6 +239,7 @@ export class AgentClient {
 
       // Handle streaming response from Agentuity agent
       let fullResponse = '';
+      let metadata: any = null;
 
       if (response.body && onChunk) {
         const reader = response.body.getReader();
@@ -249,10 +250,33 @@ export class AgentClient {
           if (done) break;
 
           const chunk = decoder.decode(value, { stream: true });
-          fullResponse += chunk;
           
-          // Stream each chunk directly to the user
-          onChunk(chunk);
+          // Check if this chunk contains metadata
+          if (chunk.includes('__AGENTPRD_METADATA__')) {
+            const parts = chunk.split('__AGENTPRD_METADATA__');
+            const textPart = parts[0];
+            const metadataPart = parts[1];
+            
+            // Only show the text part before the metadata marker
+            if (textPart) {
+              fullResponse += textPart;
+              onChunk(textPart);
+            }
+            
+            // Parse and store metadata but don't show it to the user
+            if (metadataPart) {
+              try {
+                metadata = JSON.parse(metadataPart.trim());
+              } catch (e) {
+                console.warn('Failed to parse metadata chunk:', e);
+              }
+            }
+            // Don't add the metadata part to fullResponse or show it to user
+          } else {
+            fullResponse += chunk;
+            // Stream each chunk directly to the user
+            onChunk(chunk);
+          }
         }
       } else {
         // Fallback to non-streaming
@@ -262,24 +286,31 @@ export class AgentClient {
         }
       }
 
-      // Return structured response - streaming gives us just text content
+      // Use metadata from stream if available, otherwise create default response
       const agentResponse: AgentResponse = {
         content: fullResponse.trim(),
-        sessionId: this.sessionId || this.generateSessionId(),
-        needsApproval: this.options.approvalMode === 'suggest'
+        sessionId: metadata?.sessionId || this.sessionId || this.generateSessionId(),
+        needsApproval: metadata?.needsApproval ?? (this.options.approvalMode === 'suggest')
       };
 
-      // Generate a new session ID if we don't have one
-      if (!this.sessionId) {
+      // Update session ID from metadata
+      if (metadata?.sessionId) {
+        this.sessionId = metadata.sessionId;
+      } else if (!this.sessionId) {
         this.sessionId = this.generateSessionId();
       }
 
-      // Add assistant response to conversation history
-      this.conversationHistory.push({
-        role: 'assistant',
-        content: agentResponse.content,
-        timestamp: new Date().toISOString()
-      });
+      // Update conversation history from metadata, or add assistant response
+      if (metadata?.conversationHistory) {
+        this.conversationHistory = metadata.conversationHistory;
+      } else {
+        // Add assistant response to conversation history
+        this.conversationHistory.push({
+          role: 'assistant',
+          content: agentResponse.content,
+          timestamp: new Date().toISOString()
+        });
+      }
 
       return agentResponse;
 
@@ -324,16 +355,16 @@ export class AgentClient {
 
   getConversationSummary(): Array<{ type: 'prd' | 'brainstorm' | 'coach', title: string, timestamp: Date }> {
     const summaries: Array<{ type: 'prd' | 'brainstorm' | 'coach', title: string, timestamp: Date }> = [];
-    
+
     for (let i = 0; i < this.conversationHistory.length; i += 2) {
       const userMsg = this.conversationHistory[i];
       const assistantMsg = this.conversationHistory[i + 1];
-      
+
       if (userMsg && userMsg.role === 'user') {
-        const type = userMsg.content.includes('prd') ? 'prd' : 
-                    userMsg.content.includes('brainstorm') ? 'brainstorm' : 'coach';
+        const type = userMsg.content.includes('prd') ? 'prd' :
+          userMsg.content.includes('brainstorm') ? 'brainstorm' : 'coach';
         const title = userMsg.content.slice(0, 40) + (userMsg.content.length > 40 ? '...' : '');
-        
+
         summaries.push({
           type,
           title,
@@ -341,7 +372,7 @@ export class AgentClient {
         });
       }
     }
-    
+
     return summaries;
   }
 }

@@ -130,22 +130,34 @@ export default async function ProductOrchestrator(
 			model: openai('o3-2025-04-16'),
 			system: systemPrompt,
 			messages: messages,
-			maxTokens: 3000,
-			temperature: 0.7,
 		});
 
 		// For CLI requests (JSON content type), use streaming to show real-time AI generation
 		if (contentType === 'application/json') {
 			let fullResponse = '';
 
+			// Add user message to conversation history before streaming (if not already there)
+			if (!conversationContext.messages.some(m => 
+				m.role === 'user' && 
+				m.content === userMessage && 
+				Math.abs(new Date(m.timestamp).getTime() - Date.now()) < 5000
+			)) {
+				conversationContext.messages.push({
+					role: 'user',
+					content: userMessage,
+					timestamp: new Date().toISOString()
+				});
+			}
+
 			// Create a custom stream that captures the response for storage
 			const captureStream = async function* () {
+				// Stream text chunks as they arrive
 				for await (const chunk of result.textStream) {
 					fullResponse += chunk;
 					yield chunk;
 				}
 
-				// After streaming is complete, save the conversation
+				// After streaming text is complete, add assistant response and save
 				conversationContext.messages.push({
 					role: 'assistant',
 					content: fullResponse,
@@ -158,6 +170,16 @@ export default async function ProductOrchestrator(
 				} catch (error) {
 					ctx.logger.error('Failed to save conversation', { error });
 				}
+
+				// Send final metadata chunk as JSON delimited by special markers
+				const metadata = {
+					type: 'metadata',
+					sessionId,
+					conversationHistory: conversationContext.messages.slice(-10), // Last 10 messages
+					needsApproval: false
+				};
+				
+				yield '\n__AGENTPRD_METADATA__\n' + JSON.stringify(metadata);
 			};
 
 			return resp.stream(captureStream());
@@ -166,6 +188,19 @@ export default async function ProductOrchestrator(
 			let fullResponse = '';
 			for await (const chunk of result.textStream) {
 				fullResponse += chunk;
+			}
+
+			// Add user message to conversation history (if not already there)
+			if (!conversationContext.messages.some(m => 
+				m.role === 'user' && 
+				m.content === userMessage && 
+				Math.abs(new Date(m.timestamp).getTime() - Date.now()) < 5000
+			)) {
+				conversationContext.messages.push({
+					role: 'user',
+					content: userMessage,
+					timestamp: new Date().toISOString()
+				});
 			}
 
 			// Save conversation for non-streaming responses too
