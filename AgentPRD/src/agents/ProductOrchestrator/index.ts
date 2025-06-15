@@ -1,5 +1,5 @@
 import type { AgentContext, AgentRequest, AgentResponse } from '@agentuity/sdk';
-import { openai } from '@ai-sdk/openai';
+import { anthropic, type AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
 import { ContextManager, createContextTools } from '../../tools/context-tools.js';
 
@@ -130,12 +130,20 @@ export default async function ProductOrchestrator(
 		const tools = createContextTools(contextManager, userId);
 
 		const result = streamText({
-			model: openai('gpt-4o'),
+			model: anthropic('claude-4-sonnet-20250514'),
 			system: systemPrompt,
 			messages: messages,
 			tools: tools,
 			maxSteps: 5,
-			toolChoice: 'auto'
+			toolChoice: 'auto',
+			headers: {
+				'anthropic-beta': 'interleaved-thinking-2025-05-14',
+			},
+			providerOptions: {
+				anthropic: {
+					thinking: { type: 'enabled', budgetTokens: 15000 },
+				} satisfies AnthropicProviderOptions,
+			},
 		});
 
 		// For CLI requests (JSON content type), use streaming to show real-time AI generation
