@@ -6,25 +6,36 @@ import { useCommandHistory } from '../../hooks/useCommandHistory.js';
 interface CommandInputProps {
   onSubmit: (command: string) => void;
   placeholder?: string;
+  onFocus?: (focused: boolean) => void;
 }
 
 export const CommandInput: React.FC<CommandInputProps> = ({ 
   onSubmit, 
-  placeholder = "Type your message..." 
+  placeholder = "Type your message...",
+  onFocus
 }) => {
   const [input, setInput] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
   const { isStreaming } = useChatContext();
   const { addToHistory, navigateHistory } = useCommandHistory();
 
   useInput((inputChar, key) => {
-    // Disable input while streaming
+    // Disable input while streaming or if other overlays are active
     if (isStreaming) return;
+
+    // Set focus state when user starts typing
+    if (!isFocused && inputChar && !key.ctrl && !key.meta) {
+      setIsFocused(true);
+      onFocus?.(true);
+    }
 
     if (key.return) {
       if (input.trim()) {
         addToHistory(input);
         onSubmit(input);
         setInput('');
+        setIsFocused(false);
+        onFocus?.(false);
       }
       return;
     }
@@ -38,6 +49,12 @@ export const CommandInput: React.FC<CommandInputProps> = ({
     if (key.downArrow) {
       const historyItem = navigateHistory('down', input);
       setInput(historyItem);
+      return;
+    }
+
+    if (key.escape) {
+      setIsFocused(false);
+      onFocus?.(false);
       return;
     }
 

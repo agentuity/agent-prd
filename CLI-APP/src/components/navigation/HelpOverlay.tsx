@@ -44,16 +44,12 @@ export const HelpOverlay: React.FC<HelpOverlayProps> = ({ onClose }) => {
 
   return (
     <Box 
-      position="absolute" 
-      top={2} 
-      left={2} 
-      right={2} 
-      bottom={2}
       borderStyle="double" 
       borderColor="yellow" 
       backgroundColor="black"
       padding={1}
       flexDirection="column"
+      marginY={1}
     >
       {/* Header */}
       <Box marginBottom={1} justifyContent="center">

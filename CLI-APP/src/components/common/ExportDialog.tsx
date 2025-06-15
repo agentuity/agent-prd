@@ -103,15 +103,12 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ onClose, onExport })
 
   return (
     <Box 
-      position="absolute" 
-      top={3} 
-      left={5} 
-      right={5} 
       borderStyle="double" 
       borderColor="green" 
       backgroundColor="black"
       padding={1}
       flexDirection="column"
+      marginY={1}
     >
       {/* Header */}
       <Box marginBottom={1} justifyContent="center">

@@ -37,56 +37,8 @@ export const StatusBar: React.FC<StatusBarProps> = ({ options, showHelp }) => {
   };
 
   return (
-    <Box borderStyle="single" borderColor={showHelp ? "yellow" : "gray"} paddingX={1}>
-      <Box flexGrow={1}>
-        {/* Left side - Status and info */}
-        <Box>
-          <Text color={isStreaming ? "yellow" : "green"}>
-            {isStreaming ? '⏳ Processing...' : '✅ Ready'}
-          </Text>
-          <Text color="gray" marginLeft={2}>
-            •
-          </Text>
-          <Text color="blue" marginLeft={1}>
-            {getConnectionStatus()}
-          </Text>
-          <Text color="gray" marginLeft={2}>
-            •
-          </Text>
-          <Text color="cyan" marginLeft={1}>
-            Messages: {getMessageCount()}
-          </Text>
-        </Box>
-      </Box>
-      
-      {/* Center - Shortcuts hint */}
-      <Box justifyContent="center" flexGrow={1}>
-        {showHelp ? (
-          <Text color="yellow" bold>
-            📖 Help Mode - Press ESC to close
-          </Text>
-        ) : (
-          <Text color="gray">
-            ? = Help • Ctrl+S = Sidebar • Ctrl+E = Export • Ctrl+L = Clear • Ctrl+C = Exit
-          </Text>
-        )}
-      </Box>
-      
-      {/* Right side - Session and time info */}
-      <Box>
-        <Text color="magenta">
-          {getSessionInfo()}
-        </Text>
-        <Text color="gray" marginLeft={2}>
-          •
-        </Text>
-        <Text color="gray" marginLeft={1}>
-          {currentTime.toLocaleTimeString([], { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          })}
-        </Text>
-      </Box>
-    </Box>
+    <Text backgroundColor="gray" color="white">
+      {isStreaming ? '⏳ Processing...' : '✅ Ready'} • {getConnectionStatus()} • Messages: {getMessageCount()} • {showHelp ? '📖 Help Mode - Press ESC to close' : '/help for commands • /export • /sidebar • /clear • Ctrl+C = Exit'} • {getSessionInfo()} • {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+    </Text>
   );
 };

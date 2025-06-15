@@ -4,16 +4,43 @@ import { MessageHistory } from './MessageHistory.js';
 import { CommandInput } from '../input/CommandInput.js';
 import { ApprovalDialog } from '../approval/ApprovalDialog.js';
 import { CommandPreview } from '../approval/CommandPreview.js';
+import { HelpOverlay } from '../navigation/HelpOverlay.js';
+import { ExportDialog } from '../common/ExportDialog.js';
 import { useChatContext } from '../../context/ChatContext.js';
 import { useAgent } from '../../hooks/useAgent.js';
 import { useApproval } from '../../hooks/useApproval.js';
 import { generateId } from '../../utils/helpers.js';
+import { parseSlashCommand, executeSlashCommand, type SlashCommandContext } from '../../utils/slashCommands.js';
 
 interface ChatContainerProps {
   initialPrompt?: string;
+  onInputFocus?: (focused: boolean) => void;
+  showHelp?: boolean;
+  showExport?: boolean;
+  showSidebar?: boolean;
+  onShowHelp?: () => void;
+  onShowExport?: () => void;
+  onShowSidebar?: () => void;
+  onCloseHelp?: () => void;
+  onCloseExport?: () => void;
+  onCloseSidebar?: () => void;
+  onExport?: (format: string, options: any) => void;
 }
 
-export const ChatContainer: React.FC<ChatContainerProps> = ({ initialPrompt }) => {
+export const ChatContainer: React.FC<ChatContainerProps> = ({ 
+  initialPrompt, 
+  onInputFocus,
+  showHelp,
+  showExport,
+  showSidebar,
+  onShowHelp,
+  onShowExport,
+  onShowSidebar,
+  onCloseHelp,
+  onCloseExport,
+  onCloseSidebar,
+  onExport
+}) => {
   const { messages, setMessages } = useChatContext();
   const { approvalState, showApproval, handleApprove, handleDeny, handleEdit } = useApproval();
   
@@ -36,7 +63,42 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({ initialPrompt }) =
   const handleSubmit = async (input: string) => {
     if (!input.trim() || isLoading) return;
 
-    // Add user message
+    // Parse slash commands first
+    const { command, args, isSlashCommand } = parseSlashCommand(input);
+    
+    if (isSlashCommand) {
+      // Create slash command context
+      const slashContext: SlashCommandContext = {
+        setShowHelp: () => {}, // Will be handled by parent
+        setShowExport: () => {},
+        setShowSidebar: () => {},
+        clearMessages: () => setMessages([]),
+        exportConversation: onExport || (() => ({}))
+      };
+
+      // Handle UI commands locally
+      if (['help', 'h', '?'].includes(command)) {
+        onShowHelp?.();
+        return;
+      }
+      
+      if (['export', 'e'].includes(command)) {
+        onShowExport?.();
+        return;
+      }
+      
+      if (['sidebar', 's', 'info'].includes(command)) {
+        onShowSidebar?.();
+        return;
+      }
+      
+      if (['clear', 'c'].includes(command)) {
+        setMessages([]);
+        return;
+      }
+    }
+
+    // Add user message for regular messages or agent-handled slash commands
     const userMessage = {
       id: generateId(),
       type: 'user' as const,
@@ -47,29 +109,22 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({ initialPrompt }) =
     setMessages(prev => [...prev, userMessage]);
 
     try {
-      // Parse slash commands
-      let command: string | undefined;
-      let message = input;
-      
-      if (input.startsWith('/')) {
-        const [cmd, ...args] = input.slice(1).split(' ');
-        command = cmd;
-        message = args.join(' ');
+      if (isSlashCommand) {
+        // Send slash command to agent
+        await sendMessage(args.join(' '), command);
+      } else {
+        // Send regular message
+        await sendMessage(input);
       }
-
-      // Send to agent (useAgent hook handles streaming and message updates)
-      await sendMessage(message, command);
     } catch (err) {
-      // Error is already handled by useAgent hook
       console.error('Failed to send message:', err);
     }
   };
 
   return (
-    <Box flexDirection="column" height="100%">
-      <Box flexGrow={1}>
-        <MessageHistory />
-      </Box>
+    <Box flexDirection="column">
+      {/* Message Area */}
+      <MessageHistory />
       
       {/* Show approval dialog if needed */}
       {approvalState.isShowingApproval && (
@@ -86,12 +141,31 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({ initialPrompt }) =
         </Box>
       )}
       
-      <Box>
-        <CommandInput 
-          onSubmit={handleSubmit} 
-          placeholder={approvalState.isShowingApproval ? "Waiting for approval..." : "Type your message..."}
+      {/* Show help dialog at bottom */}
+      {showHelp && onCloseHelp && (
+        <HelpOverlay onClose={onCloseHelp} />
+      )}
+      
+      {/* Show export dialog at bottom */}
+      {showExport && onCloseExport && onExport && (
+        <ExportDialog 
+          onClose={onCloseExport}
+          onExport={onExport}
         />
-      </Box>
+      )}
+      
+      {/* Input Area */}
+      <CommandInput 
+        onSubmit={handleSubmit} 
+        placeholder={
+          approvalState.isShowingApproval 
+            ? "Waiting for approval..." 
+            : showHelp || showExport 
+            ? "Dialog open - type to continue or ESC to close"
+            : "Type your message or /help for commands..."
+        }
+        onFocus={onInputFocus}
+      />
     </Box>
   );
 };

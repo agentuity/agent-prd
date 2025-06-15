@@ -18,75 +18,60 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ initialPrompt, options }) 
   const [showHelp, setShowHelp] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const { exportConversation } = useExport();
 
-  // Set up global keyboard shortcuts
-  useKeyboard({
-    onToggleHelp: () => setShowHelp(prev => !prev),
-    onClearHistory: () => console.log('History cleared'),
-    onExport: () => setShowExport(true),
-    onExit: () => process.exit(0)
-  });
-
+  // Keep only essential keyboard shortcuts
   useInput((input, key) => {
-    // Non-Ctrl shortcuts
-    if (input === '?') {
-      setShowHelp(prev => !prev);
-      return;
-    }
-    
-    if (input === 's' && key.ctrl) {
-      setShowSidebar(prev => !prev);
-      return;
-    }
-    
     if (key.escape) {
-      setShowHelp(false);
-      setShowExport(false);
+      if (showHelp) setShowHelp(false);
+      if (showExport) setShowExport(false);
+      if (showSidebar) setShowSidebar(false);
       return;
+    }
+    
+    if (key.ctrl && input === 'c') {
+      process.exit(0);
     }
   });
 
   return (
-    <Box flexDirection="column" height="100%">
-      {/* Header */}
-      <Box borderStyle="round" borderColor="blue" paddingX={1}>
-        <Text bold color="blue">
-          🤖 AgentPM - AI-Powered Product Management CLI
-        </Text>
-      </Box>
-      
+    <Box flexDirection="column">
       {/* Main Content Area */}
-      <Box flexGrow={1} flexDirection="row">
+      <Box flexDirection="row" paddingBottom={1}>
         {/* Sidebar */}
         {showSidebar && (
-          <Sidebar width={25} visible={true} />
+          <Box width={25} flexShrink={0}>
+            <Sidebar width={25} visible={true} />
+          </Box>
         )}
         
         {/* Chat Area */}
-        <Box flexGrow={1} flexDirection="column">
-          <ChatContainer initialPrompt={initialPrompt} />
+        <Box flexGrow={1}>
+          <ChatContainer 
+            initialPrompt={initialPrompt} 
+            onInputFocus={setIsInputFocused}
+            showHelp={showHelp}
+            showExport={showExport}
+            showSidebar={showSidebar}
+            onShowHelp={() => setShowHelp(true)}
+            onShowExport={() => setShowExport(true)}
+            onShowSidebar={() => setShowSidebar(true)}
+            onCloseHelp={() => setShowHelp(false)}
+            onCloseExport={() => setShowExport(false)}
+            onCloseSidebar={() => setShowSidebar(false)}
+            onExport={(format, options) => {
+              const result = exportConversation(format, options);
+              console.log(result.success ? `Exported to ${result.filename}` : `Export failed: ${result.error}`);
+            }}
+          />
         </Box>
       </Box>
       
-      {/* Help Overlay */}
-      {showHelp && (
-        <HelpOverlay onClose={() => setShowHelp(false)} />
-      )}
-      
-      {/* Export Dialog */}
-      {showExport && (
-        <ExportDialog 
-          onClose={() => setShowExport(false)}
-          onExport={(format, options) => {
-            const result = exportConversation(format, options);
-            console.log(result.success ? `Exported to ${result.filename}` : `Export failed: ${result.error}`);
-          }}
-        />
-      )}
-      
-      {/* Enhanced Status Bar */}
-      <StatusBar options={options} showHelp={showHelp} />
+      {/* Fixed Status Bar at bottom */}
+      <Box position="absolute" bottom={0} left={0} width="100%">
+        <StatusBar options={options} showHelp={showHelp} />
+      </Box>
     </Box>
   );
 };
