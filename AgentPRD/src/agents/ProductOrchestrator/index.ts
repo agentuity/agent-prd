@@ -129,21 +129,18 @@ export default async function ProductOrchestrator(
 		const contextManager = new ContextManager(ctx);
 		const tools = createContextTools(contextManager, userId);
 
+		// Use smart model selection: faster models for operational tasks, reasoning for creative work
+		const modelConfig = getModelConfig(command);
+
 		const result = streamText({
-			model: anthropic('claude-4-sonnet-20250514'),
+			model: anthropic(modelConfig.model),
 			system: systemPrompt,
 			messages: messages,
 			tools: tools,
-			maxSteps: 5,
+			maxSteps: modelConfig.maxSteps,
 			toolChoice: 'auto',
-			headers: {
-				'anthropic-beta': 'interleaved-thinking-2025-05-14',
-			},
-			providerOptions: {
-				anthropic: {
-					thinking: { type: 'enabled', budgetTokens: 15000 },
-				} satisfies AnthropicProviderOptions,
-			},
+			headers: modelConfig.headers,
+			...modelConfig.providerOptions,
 		});
 
 		// For CLI requests (JSON content type), use streaming to show real-time AI generation
@@ -339,8 +336,68 @@ Explain that you don't use generic templates but create custom solutions for eac
 	}
 
 	if (command === 'export') {
-		return base + ` Help the user export their current work or past PRDs to various formats (markdown, PDF, etc.).`;
+		return base + `
+
+**TASK: Export Current Work to Markdown**
+
+Your job is to export the user's recent meaningful work to clean markdown format. Follow these steps:
+
+1. **Identify Exportable Content**: Look through the recent conversation history for:
+   - PRDs created with /create-prd
+   - Brainstorming sessions from /brainstorm  
+   - Substantial coaching outputs from /coach
+   - Any other significant work product (>300 words)
+
+2. **Format as Clean Markdown**: Structure the content with:
+   - Clear headings (# ## ###)
+   - Bulleted lists for features/ideas
+   - Tables for comparisons if relevant
+   - Code blocks for technical specs
+   - Proper spacing and organization
+
+3. **Include Context**: Add a header with:
+   - Title of the work
+   - Date created
+   - Brief description
+
+4. **Handle Edge Cases**:
+   - If no substantial work found: Explain what can be exported and suggest creating content first
+   - If multiple pieces: Ask which specific item to export or export the most recent substantial work
+
+Focus on extracting and formatting existing conversation content, not creating new content. Be efficient and direct.`;
 	}
 
 	return base + ` Be helpful and guide them toward using /create-prd, /brainstorm, or /coach based on their needs.`;
+}
+
+function getModelConfig(command?: string) {
+	// Fast operations that don't need reasoning: export, help, history, context management
+	const fastOperations = ['export', 'help', 'history', 'context'];
+	const isFastOperation = fastOperations.includes(command || '');
+
+	if (isFastOperation) {
+		// Use fast model without reasoning for operational tasks
+		return {
+			model: 'claude-4-haiku-20250514',
+			maxSteps: 3,
+			headers: {},
+			providerOptions: {}
+		};
+	} else {
+		// Use reasoning model for creative/complex tasks (PRDs, brainstorming, coaching)
+		return {
+			model: 'claude-4-sonnet-20250514',
+			maxSteps: 5,
+			headers: {
+				'anthropic-beta': 'interleaved-thinking-2025-05-14',
+			},
+			providerOptions: {
+				providerOptions: {
+					anthropic: {
+						thinking: { type: 'enabled', budgetTokens: 15000 },
+					} satisfies AnthropicProviderOptions,
+				}
+			}
+		};
+	}
 }
