@@ -147,14 +147,38 @@ export class AgentClient {
 
       // Handle both JSON and text responses
       let agentResponse: AgentResponse;
-      const responseText = await response.text();
+      let responseText = await response.text();
+      let hasMetadata = false;
+
+      // Remove metadata if present
+      if (responseText.includes('__AGENTPRD_METADATA__')) {
+        hasMetadata = true;
+        const parts = responseText.split('__AGENTPRD_METADATA__');
+        responseText = parts[0] || ''; // Only keep the text before metadata
+        
+        // Try to parse metadata if available
+        if (parts[1]) {
+          try {
+            const metadata = JSON.parse(parts[1].trim());
+            // Update session info from metadata
+            if (metadata.sessionId) {
+              this.sessionId = metadata.sessionId;
+            }
+            if (metadata.conversationHistory) {
+              this.conversationHistory = metadata.conversationHistory;
+            }
+          } catch (e) {
+            console.warn('Failed to parse metadata in non-streaming response:', e);
+          }
+        }
+      }
 
       try {
         agentResponse = JSON.parse(responseText) as AgentResponse;
       } catch {
         // If not JSON, treat as plain text content
         agentResponse = {
-          content: responseText,
+          content: responseText.trim(),
           sessionId: this.sessionId || this.generateSessionId(),
           needsApproval: this.options.approvalMode === 'suggest'
         };
@@ -165,12 +189,14 @@ export class AgentClient {
         this.sessionId = agentResponse.sessionId;
       }
 
-      // Add assistant response to conversation history
-      this.conversationHistory.push({
-        role: 'assistant',
-        content: agentResponse.content,
-        timestamp: new Date().toISOString()
-      });
+      // Only add assistant response to conversation history if metadata didn't already update it
+      if (!hasMetadata) {
+        this.conversationHistory.push({
+          role: 'assistant',
+          content: agentResponse.content,
+          timestamp: new Date().toISOString()
+        });
+      }
 
       return agentResponse;
 
@@ -240,10 +266,12 @@ export class AgentClient {
       // Handle streaming response from Agentuity agent
       let fullResponse = '';
       let metadata: any = null;
+      let metadataBuffer = ''; // Buffer for collecting complete metadata JSON
 
       if (response.body && onChunk) {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
+        let collectingMetadata = false;
 
         while (true) {
           const { done, value } = await reader.read();
@@ -251,11 +279,11 @@ export class AgentClient {
 
           const chunk = decoder.decode(value, { stream: true });
           
-          // Check if this chunk contains metadata
-          if (chunk.includes('__AGENTPRD_METADATA__')) {
+          // Check if this chunk contains metadata start marker
+          if (chunk.includes('__AGENTPRD_METADATA__') && !collectingMetadata) {
             const parts = chunk.split('__AGENTPRD_METADATA__');
             const textPart = parts[0];
-            const metadataPart = parts[1];
+            const metadataStart = parts[1] || '';
             
             // Only show the text part before the metadata marker
             if (textPart) {
@@ -263,19 +291,34 @@ export class AgentClient {
               onChunk(textPart);
             }
             
-            // Parse and store metadata but don't show it to the user
-            if (metadataPart) {
+            // Start collecting metadata
+            collectingMetadata = true;
+            metadataBuffer = metadataStart;
+          } else if (collectingMetadata) {
+            // Continue collecting metadata chunks
+            metadataBuffer += chunk;
+          } else {
+            // Regular text chunk
+            fullResponse += chunk;
+            onChunk(chunk);
+          }
+        }
+
+        // Try to parse collected metadata
+        if (metadataBuffer.trim()) {
+          try {
+            metadata = JSON.parse(metadataBuffer.trim());
+          } catch (e) {
+            console.warn('Failed to parse metadata buffer:', e);
+            // Try to extract JSON if there's extra content after
+            const jsonMatch = metadataBuffer.match(/^({.*})/);
+            if (jsonMatch && jsonMatch[1]) {
               try {
-                metadata = JSON.parse(metadataPart.trim());
-              } catch (e) {
-                console.warn('Failed to parse metadata chunk:', e);
+                metadata = JSON.parse(jsonMatch[1].trim());
+              } catch (e2) {
+                console.warn('Failed to parse extracted JSON:', e2);
               }
             }
-            // Don't add the metadata part to fullResponse or show it to user
-          } else {
-            fullResponse += chunk;
-            // Stream each chunk directly to the user
-            onChunk(chunk);
           }
         }
       } else {

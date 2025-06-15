@@ -1,6 +1,7 @@
 import type { AgentContext, AgentRequest, AgentResponse } from '@agentuity/sdk';
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
+import { ContextManager, createContextTools } from '../../tools/context-tools.js';
 
 const KV_NAMESPACE = 'agentprd-main';
 
@@ -125,11 +126,16 @@ export default async function ProductOrchestrator(
 		}
 
 		const systemPrompt = getSystemPrompt(command);
+		const contextManager = new ContextManager(ctx);
+		const tools = createContextTools(contextManager, userId);
 
 		const result = streamText({
-			model: openai('o3-2025-04-16'),
+			model: openai('gpt-4o'),
 			system: systemPrompt,
 			messages: messages,
+			tools: tools,
+			maxSteps: 5,
+			toolChoice: 'auto'
 		});
 
 		// For CLI requests (JSON content type), use streaming to show real-time AI generation
@@ -157,7 +163,8 @@ export default async function ProductOrchestrator(
 					yield chunk;
 				}
 
-				// After streaming text is complete, add assistant response and save
+				// Save the assistant response 
+				// Tool executions are handled automatically by the AI SDK
 				conversationContext.messages.push({
 					role: 'assistant',
 					content: fullResponse,
@@ -241,7 +248,15 @@ function getSystemPrompt(command?: string): string {
 - No generic templates - you create customized structures for each user's specific needs
 - Ask clarifying questions to understand context deeply
 - Use proven PM frameworks (RICE, Jobs-to-be-Done, OKRs, etc.)
-- Think like a senior PM who ships successful products`;
+- Think like a senior PM who ships successful products
+
+**Context Management:**
+You have tools to manage work contexts and store PRDs:
+- Use set_work_context when users want to establish what they're working on
+- Use get_work_context to check current work and goals
+- Use store_prd to save completed PRDs for future reference
+- Use list_prds to show past work
+- Help users maintain continuity between sessions`;
 
 	if (command === 'create-prd') {
 		return base + `
@@ -269,6 +284,20 @@ Start by asking them about their product to understand what kind of PRD structur
 		return base + ` Provide strategic PM advice using proven frameworks. Ask follow-up questions to understand their specific situation.`;
 	}
 
+	if (command === 'context') {
+		return base + `
+		
+**TASK: Context Management**
+
+Help the user manage their work context. Available actions:
+- set: Establish what they're working on with clear goals
+- get: Show current work context and progress
+- list: Show all available work contexts
+- switch: Change to a different work context
+
+Use the context management tools to store and retrieve work state. Always confirm actions taken.`;
+	}
+
 	if (command === 'help') {
 		return base + `
 
@@ -276,6 +305,7 @@ Show available commands:
 - /create-prd - Interactive PRD creation (no templates, custom structure)
 - /brainstorm - Feature ideation and prioritization  
 - /coach - Strategic product management advice
+- /context - Manage work context and goals (set, get, list, switch)
 - /history - Show past PRDs and work
 - /export - Export current work to file
 - /help - Show this help

@@ -10,7 +10,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import boxen from 'boxen';
-import { startREPL } from './repl/repl.js';
+import { startEnhancedREPL } from './repl/enhanced-repl.js';
 import { handleConfigCommand } from './commands/config.js';
 import { OutputManager } from './utils/output.js';
 import { AgentClient } from './client/agent-client.js';
@@ -57,7 +57,7 @@ program
     ));
     
     // Start the REPL
-    await startREPL(options);
+    await startEnhancedREPL(options);
   });
 
 // Configuration command
