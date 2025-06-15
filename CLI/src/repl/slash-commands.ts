@@ -59,9 +59,8 @@ export const SLASH_COMMANDS: Record<string, SlashCommand> = {
   },
   'export': {
     name: 'export',
-    description: 'Export current work to file',
-    args: ['[format]'],
-    examples: ['/export markdown', '/export pdf', '/export']
+    description: 'Export current work to markdown',
+    examples: ['/export']
   },
   'prds': {
     name: 'prds',
@@ -231,8 +230,8 @@ async function handlePRDCommand(args: string[], client: AgentClient, output: Out
         return;
       }
       console.log();
-      console.log(chalk.bold(`Exporting PRD #${id}...`));
-      console.log(chalk.dim('Export functionality coming soon!'));
+      console.log(chalk.bold(`Exporting PRD #${id} to markdown...`));
+      console.log(chalk.dim('Markdown export functionality coming soon!'));
       console.log();
       break;
       

@@ -418,4 +418,14 @@ export class AgentClient {
 
     return summaries;
   }
+
+  updateLastAssistantMessage(content: string): void {
+    // Find the last assistant message and update it with the actual streamed content
+    for (let i = this.conversationHistory.length - 1; i >= 0; i--) {
+      if (this.conversationHistory[i].role === 'assistant') {
+        this.conversationHistory[i].content = content;
+        break;
+      }
+    }
+  }
 }

@@ -73,7 +73,7 @@ export async function startEnhancedREPL(options: REPLOptions) {
       showAgentHeader();
       
       try {
-        await client.streamMessage(userInput, getCommandFromInput(userInput), (chunk) => {
+        const response = await client.streamMessage(userInput, getCommandFromInput(userInput), (chunk) => {
           streamingHandler.processChunk(chunk);
         });
         
@@ -83,12 +83,23 @@ export async function startEnhancedREPL(options: REPLOptions) {
         const content = streamingHandler.getBuffer();
         if (content.trim()) {
           showFormattedAgentContent(content);
+          
+          // Update the client's conversation history with the actual streamed content
+          // This ensures /export and other commands have access to the real conversation
+          client.updateLastAssistantMessage(content);
         }
         
         // Reset the handler state after we've used the content
         streamingHandler.resetState();
         
-        showAgentFooter();
+        // Only show export tip for substantial content (like PRDs, brainstorms, etc.)
+        const isExportableContent = content.length > 500 || 
+                                   content.includes('PRD') || 
+                                   content.includes('brainstorm') ||
+                                   userInput.startsWith('/create-prd') ||
+                                   userInput.startsWith('/brainstorm');
+        
+        showAgentFooter(isExportableContent);
         
       } catch (error) {
         streamingHandler.finish();
@@ -97,7 +108,7 @@ export async function startEnhancedREPL(options: REPLOptions) {
         } else {
           output.error(`Unexpected error: ${error}`);
         }
-        console.log();
+        showAgentFooter(false); // No export tip on error
       }
       
     } catch (error) {

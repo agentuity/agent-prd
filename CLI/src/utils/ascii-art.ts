@@ -110,9 +110,11 @@ function formatMarkdownForTerminal(text: string): string {
     });
 }
 
-export function showAgentFooter(): void {
+export function showAgentFooter(showExportTip: boolean = false): void {
   console.log(chalk.gray('─'.repeat(40)));
-  console.log(chalk.dim.italic('💡 Tip: Use ') + chalk.dim.cyan('/export') + chalk.dim.italic(' to save this as markdown, PDF, or other formats'));
+  if (showExportTip) {
+    console.log(chalk.dim.italic('💡 Tip: Use ') + chalk.dim.cyan('/export') + chalk.dim.italic(' to save this as markdown'));
+  }
   console.log();
 }
 
