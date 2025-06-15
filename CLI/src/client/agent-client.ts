@@ -5,7 +5,6 @@
  */
 
 import { config } from '../utils/config.js';
-import { getAgentUrl } from '../utils/agent-config.js';
 
 export interface AgentRequest {
   userId?: string;
@@ -61,11 +60,19 @@ export class AgentClient {
     this.options = options;
   }
 
-  private async getAgentUrl(): Promise<string> {
+  private getAgentUrl(): string {
+    // Check for configured URL first
     const configUrl = config.get('agentUrl');
     if (configUrl) return configUrl;
 
-    return await getAgentUrl('auto');
+    // Check environment variable
+    if (process.env.AGENTPM_AGENT_URL) {
+      return process.env.AGENTPM_AGENT_URL;
+    }
+
+    // Default to local development setup
+    const agentId = config.get('agentId') || 'agent_6e3e7cfcfa122e1b5bfc5a930489e552';
+    return `http://127.0.0.1:3500/${agentId}`;
   }
 
   private getApiKey(): string {
@@ -84,8 +91,12 @@ export class AgentClient {
     };
 
     try {
-      const targetUrl = await this.getAgentUrl();
+      const targetUrl = this.getAgentUrl();
       const apiKey = this.getApiKey();
+
+      if (this.options.verbose) {
+        console.log('Connecting to:', targetUrl);
+      }
 
       // Add timeout to prevent hanging
       const controller = new AbortController();
@@ -147,7 +158,7 @@ export class AgentClient {
     };
 
     try {
-      const targetUrl = await this.getAgentUrl();
+      const targetUrl = this.getAgentUrl();
       const apiKey = this.getApiKey();
 
       // Add timeout to prevent hanging
@@ -163,10 +174,6 @@ export class AgentClient {
       if (apiKey) {
         headers['Authorization'] = `Bearer ${apiKey}`;
       }
-
-      console.log('targetUrl', targetUrl);
-      console.log('headers', headers);
-      console.log('request', request);
 
       const response = await fetch(targetUrl, {
         method: 'POST',

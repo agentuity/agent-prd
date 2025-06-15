@@ -10,6 +10,7 @@ import { homedir } from 'os';
 
 export interface Config {
   agentUrl?: string;
+  agentId?: string;
   agentApiKey?: string;
   approvalMode?: 'suggest' | 'auto-edit' | 'full-auto';
   defaultTemplate?: string;
