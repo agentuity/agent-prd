@@ -83,34 +83,28 @@ async function handleShortCommand(command: string, client: AgentClient, output: 
   const spinner = output.startSpinner(`Processing ${parsedCommand.name}...`);
   
   try {
-    // TODO: Implement actual agent communication
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate processing
+    // Use actual agent communication
+    const response = await client.sendMessage(parsedCommand.rawArgs, parsedCommand.name);
+    output.succeedSpinner('Complete');
     
-    switch (parsedCommand.name) {
-      case 'help':
-        output.stopSpinner();
-        showHelp();
-        break;
-      case 'templates':
-        output.succeedSpinner('Available templates loaded');
-        output.list(['saas-product', 'mobile-app', 'feature-enhancement'], '📋 Available Templates:');
-        break;
-      case 'create-prd':
-        output.succeedSpinner('PRD creation started');
-        output.success(`Starting PRD creation for: ${parsedCommand.args.join(' ')}`);
-        output.info('This will integrate with AgentPRD once client is implemented');
-        break;
-      case 'export':
-        output.succeedSpinner('Export completed');
-        output.success('Export functionality will be implemented soon');
-        break;
-      case 'brainstorm':
-        output.succeedSpinner('Brainstorming session started');
-        output.success(`Starting brainstorming on: ${parsedCommand.args.join(' ')}`);
-        output.info('This will integrate with AgentPRD once client is implemented');
-        break;
-      default:
-        output.failSpinner(`Command ${parsedCommand.name} not implemented yet`);
+    // Display agent response
+    console.log('\n' + response.content);
+    
+    // Show files if any
+    if (response.files && response.files.length > 0) {
+      console.log(chalk.gray('\n📁 Generated files:'));
+      for (const file of response.files) {
+        console.log(chalk.gray(`  • ${file.name} (${file.type})`));
+        if (file.description) {
+          console.log(chalk.gray(`    ${file.description}`));
+        }
+      }
+    }
+    
+    // Show approval status
+    if (response.needsApproval) {
+      console.log(chalk.yellow('\n⚠️  Actions require approval (approval mode: suggest)'));
+      console.log(chalk.gray('Use agentpm --approval-mode auto-edit to reduce prompting'));
     }
   } catch (error) {
     output.failSpinner('Command failed');
@@ -119,22 +113,32 @@ async function handleShortCommand(command: string, client: AgentClient, output: 
 }
 
 async function handleConversation(message: string, client: AgentClient, output: OutputManager) {
-  const spinner = output.startSpinner('🤖 Agent thinking...');
-  
   try {
-    // TODO: Implement actual agent communication
-    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate AI processing
+    // Use streaming agent response
+    const response = await client.streamMessage(message, undefined, (chunk) => {
+      process.stdout.write(chunk);
+    });
     
-    output.stopSpinner();
+    console.log(); // New line after streaming
     
-    // Simulate streaming agent response
-    const response = `I understand you want to: "${message}"\n\nI'm ready to help with that! Once the AgentPRD integration is complete, I'll be able to provide intelligent responses and perform actions.\n\n💡 Try these commands while we're setting up:\n  /help - Show available commands\n  /templates - List available templates\n  /create-prd mobile app - Start PRD creation`;
+    // Show files if any
+    if (response.files && response.files.length > 0) {
+      console.log(chalk.gray('\n📁 Generated files:'));
+      for (const file of response.files) {
+        console.log(chalk.gray(`  • ${file.name} (${file.type})`));
+        if (file.description) {
+          console.log(chalk.gray(`    ${file.description}`));
+        }
+      }
+    }
     
-    await output.streamResponse(response);
+    // Show approval status
+    if (response.needsApproval) {
+      console.log(chalk.yellow('\n⚠️  Actions require approval (approval mode: suggest)'));
+    }
     
   } catch (error) {
-    output.failSpinner('Failed to communicate with agent');
-    handleError(error);
+    output.error(`Agent communication failed: ${error instanceof Error ? error.message : error}`);
   }
 }
 
