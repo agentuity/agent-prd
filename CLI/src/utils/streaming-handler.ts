@@ -25,6 +25,8 @@ export class StreamingHandler {
   };
 
   private thinkingSpinner?: any;
+  private loadingSpinner?: any;
+  private lastPreviewLength = 0;
 
   constructor() {
     this.resetState();
@@ -43,6 +45,13 @@ export class StreamingHandler {
       this.thinkingSpinner.stop();
       this.thinkingSpinner = undefined;
     }
+    
+    if (this.loadingSpinner) {
+      this.loadingSpinner.stop();
+      this.loadingSpinner = undefined;
+    }
+    
+    this.lastPreviewLength = 0;
   }
 
   processChunk(chunk: string): void {
@@ -125,8 +134,14 @@ export class StreamingHandler {
   private processRegularContent(chunk: string) {
     this.state.buffer += chunk;
     
-    // Show content during streaming (for now) to avoid regression
-    process.stdout.write(chunk);
+    // Show loading indicator with preview on first chunk
+    if (this.state.isFirstChunk) {
+      this.startLoadingIndicator();
+      this.state.isFirstChunk = false;
+    }
+    
+    // Update the preview line with content
+    this.updatePreview();
   }
 
   private showHeader() {
@@ -139,12 +154,13 @@ export class StreamingHandler {
     if (this.thinkingSpinner) {
       this.thinkingSpinner.stop();
     }
-
-    if (this.state.hasStartedOutput && this.state.buffer) {
-      process.stdout.write(finishStreamingText());
+    
+    if (this.loadingSpinner) {
+      this.loadingSpinner.stop();
+      this.clearPreviewLine();
     }
 
-    this.resetState();
+    // Don't reset state here - we need the buffer for displaying content
   }
 
   getBuffer(): string {
@@ -153,6 +169,39 @@ export class StreamingHandler {
 
   hasContent(): boolean {
     return this.state.buffer.length > 0 || this.state.reasoningBuffer.length > 0;
+  }
+
+  private startLoadingIndicator(): void {
+    this.loadingSpinner = ora({
+      text: chalk.gray('Generating response...'),
+      color: 'cyan',
+      spinner: 'dots'
+    }).start();
+  }
+
+  private updatePreview(): void {
+    if (!this.loadingSpinner) return;
+    
+    // Get first meaningful line as preview
+    const lines = this.state.buffer.split('\n');
+    let preview = '';
+    
+    for (const line of lines) {
+      const cleanLine = line.trim();
+      if (cleanLine && !cleanLine.startsWith('#') && cleanLine.length > 10) {
+        preview = cleanLine.substring(0, 60) + (cleanLine.length > 60 ? '...' : '');
+        break;
+      }
+    }
+    
+    if (preview) {
+      this.loadingSpinner.text = chalk.gray('Generating: ') + chalk.dim(preview);
+    }
+  }
+
+  private clearPreviewLine(): void {
+    // Clear the current line
+    process.stdout.write('\r' + ' '.repeat(this.lastPreviewLength + 20) + '\r');
   }
 }
 

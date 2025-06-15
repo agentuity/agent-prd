@@ -78,6 +78,16 @@ export async function startEnhancedREPL(options: REPLOptions) {
         });
         
         streamingHandler.finish();
+        
+        // Now display the complete formatted response
+        const content = streamingHandler.getBuffer();
+        if (content.trim()) {
+          showFormattedAgentContent(content);
+        }
+        
+        // Reset the handler state after we've used the content
+        streamingHandler.resetState();
+        
         showAgentFooter();
         
       } catch (error) {

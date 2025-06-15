@@ -67,70 +67,52 @@ export function showAgentHeader(): void {
 }
 
 export function showFormattedAgentContent(content: string): void {
-  const terminalWidth = process.stdout.columns || 80;
-  const boxWidth = Math.min(terminalWidth - 4, 76); // Leave some margin
+  if (!content || !content.trim()) {
+    return;
+  }
   
-  // Apply basic markdown-like formatting
+  // Apply markdown formatting
   const formattedContent = formatMarkdownForTerminal(content);
   
-  // Split content into lines and format each one
-  const lines = formattedContent.split('\n');
-  lines.forEach(line => {
-    // Handle long lines by wrapping them
-    if (line.length > boxWidth - 4) {
-      const words = line.split(' ');
-      let currentLine = '';
-      
-      words.forEach(word => {
-        if ((currentLine + word).length > boxWidth - 4) {
-          if (currentLine) {
-            const padding = ' '.repeat(Math.max(0, boxWidth - 4 - currentLine.length));
-            console.log(chalk.green('│ ') + currentLine + padding + chalk.green(' │'));
-            currentLine = word;
-          } else {
-            // Word is too long, just truncate it
-            const padding = ' '.repeat(Math.max(0, boxWidth - 4 - word.length));
-            console.log(chalk.green('│ ') + word.substring(0, boxWidth - 4) + padding + chalk.green(' │'));
-          }
-        } else {
-          currentLine += (currentLine ? ' ' : '') + word;
-        }
-      });
-      
-      if (currentLine) {
-        const padding = ' '.repeat(Math.max(0, boxWidth - 4 - currentLine.length));
-        console.log(chalk.green('│ ') + currentLine + padding + chalk.green(' │'));
-      }
-    } else {
-      const padding = ' '.repeat(Math.max(0, boxWidth - 4 - line.length));
-      console.log(chalk.green('│ ') + line + padding + chalk.green(' │'));
-    }
-  });
+  // Output the beautifully formatted content
+  console.log(formattedContent);
 }
 
-// Simple markdown formatting for terminal
+// Enhanced markdown formatting for terminal
 function formatMarkdownForTerminal(text: string): string {
   return text
-    // Headers
-    .replace(/^### (.*$)/gm, chalk.bold.cyan('$1'))
-    .replace(/^## (.*$)/gm, chalk.bold.blue('$1'))
-    .replace(/^# (.*$)/gm, chalk.bold.magenta('$1'))
-    // Bold
-    .replace(/\*\*(.*?)\*\*/g, chalk.bold('$1'))
-    // Italic
-    .replace(/\*(.*?)\*/g, chalk.italic('$1'))
-    // Code spans
-    .replace(/`(.*?)`/g, chalk.yellow('$1'))
-    // Lists
-    .replace(/^- (.*$)/gm, '• $1')
-    .replace(/^\d+\. (.*$)/gm, (match, content, offset, string) => {
-      const lineNumber = string.substring(0, offset).split('\n').length;
-      return `${lineNumber}. ${content}`;
+    // Headers with better styling
+    .replace(/^### (.*$)/gm, '\n' + chalk.bold.cyan('▶ $1') + '\n')
+    .replace(/^## (.*$)/gm, '\n' + chalk.bold.blue('🔹 $1') + '\n')
+    .replace(/^# (.*$)/gm, '\n' + chalk.bold.magenta('🚀 $1') + '\n')
+    // Bold text
+    .replace(/\*\*(.*?)\*\*/g, chalk.bold.white('$1'))
+    // Italic text  
+    .replace(/\*(.*?)\*/g, chalk.italic.gray('$1'))
+    // Code spans with background effect
+    .replace(/`(.*?)`/g, chalk.black.bgYellow(' $1 '))
+    // Unordered lists with better bullets
+    .replace(/^- (.*$)/gm, chalk.cyan('  • ') + '$1')
+    // Ordered lists with colored numbers
+    .replace(/^\d+\. (.*$)/gm, (match, content) => {
+      const num = match.split('.')[0];
+      return chalk.cyan(`  ${num}.`) + ' ' + content;
+    })
+    // Quote blocks
+    .replace(/^> (.*$)/gm, chalk.dim('│ ') + chalk.italic('$1'))
+    // Horizontal rules
+    .replace(/^---$/gm, chalk.dim('─'.repeat(50)))
+    // Code blocks (basic detection)
+    .replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+      const langLabel = lang ? chalk.cyan(`[${lang}]`) : chalk.cyan('[code]');
+      return '\n' + langLabel + '\n' + 
+             code.split('\n').map(line => chalk.gray('  ' + line)).join('\n') + '\n';
     });
 }
 
 export function showAgentFooter(): void {
   console.log(chalk.gray('─'.repeat(40)));
+  console.log(chalk.dim.italic('💡 Tip: Use ') + chalk.dim.cyan('/export') + chalk.dim.italic(' to save this as markdown, PDF, or other formats'));
   console.log();
 }
 
