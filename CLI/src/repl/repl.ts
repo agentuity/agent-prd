@@ -114,6 +114,10 @@ async function handleShortCommand(command: string, client: AgentClient, output: 
 
 async function handleConversation(message: string, client: AgentClient, output: OutputManager) {
   try {
+    // Show AgentPRD header
+    console.log('\n🤖 ' + chalk.blue.bold('AgentPRD:'));
+    console.log(chalk.dim('─'.repeat(60)));
+    
     // Use streaming agent response
     const response = await client.streamMessage(message, undefined, (chunk) => {
       process.stdout.write(chunk);

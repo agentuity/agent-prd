@@ -110,8 +110,10 @@ async function processSingleCommand(prompt: string, options: any) {
       const response = await client.sendMessage(message, command);
       output.succeedSpinner('Complete');
       
-      // Display response
-      console.log('\n' + response.content);
+      // Display response with nice formatting
+      console.log('\n🤖 ' + chalk.blue.bold('AgentPRD:'));
+      console.log(chalk.dim('─'.repeat(60)));
+      console.log(response.content);
       
       // Show files if any
       if (response.files && response.files.length > 0) {
