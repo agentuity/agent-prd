@@ -129,18 +129,22 @@ export default async function ProductOrchestrator(
 		const contextManager = new ContextManager(ctx);
 		const tools = createContextTools(contextManager, userId);
 
-		// Use smart model selection: faster models for operational tasks, reasoning for creative work
-		const modelConfig = getModelConfig(command);
-
+		// For now, use Sonnet for all commands to debug the issue
 		const result = streamText({
-			model: anthropic(modelConfig.model),
+			model: anthropic('claude-4-sonnet-20250514'),
 			system: systemPrompt,
 			messages: messages,
 			tools: tools,
-			maxSteps: modelConfig.maxSteps,
+			maxSteps: 5,
 			toolChoice: 'auto',
-			headers: modelConfig.headers,
-			...modelConfig.providerOptions,
+			headers: {
+				'anthropic-beta': 'interleaved-thinking-2025-05-14',
+			},
+			providerOptions: {
+				anthropic: {
+					thinking: { type: 'enabled', budgetTokens: 15000 },
+				} satisfies AnthropicProviderOptions,
+			},
 		});
 
 		// For CLI requests (JSON content type), use streaming to show real-time AI generation
@@ -326,6 +330,7 @@ Show available commands:
 - /context - Manage work context and goals (set, get, list, switch)
 - /history - Show past PRDs and work
 - /export - Export current work to file
+- /prds - List and manage your PRDs  
 - /help - Show this help
 
 Explain that you don't use generic templates but create custom solutions for each user.`;
@@ -333,6 +338,25 @@ Explain that you don't use generic templates but create custom solutions for eac
 
 	if (command === 'history') {
 		return base + ` Show the user's past PRDs and work from KV storage. List them with titles and brief descriptions.`;
+	}
+
+	if (command === 'prds') {
+		return base + `
+
+**TASK: List and Manage PRDs**
+
+Handle PRD listing operations:
+- **list/recent**: Use list_prds tool to show stored PRDs with titles, dates, and status
+- **search <term>**: Search through PRD titles and content (if search capability exists)
+
+Always use the list_prds tool to get actual stored PRDs from KV storage, not conversation history.
+Show PRDs in a clear, organized format with:
+- PRD ID (for use with /prd export <id>)
+- Title
+- Creation date  
+- Status (draft/review/approved)
+
+If no PRDs found, guide user to create one with /create-prd.`;
 	}
 
 	if (command === 'export') {
@@ -367,37 +391,27 @@ Your job is to export the user's recent meaningful work to clean markdown format
 Focus on extracting and formatting existing conversation content, not creating new content. Be efficient and direct.`;
 	}
 
+	if (command === 'prd') {
+		return base + `
+
+**TASK: PRD Management Operations**
+
+Handle PRD-specific operations based on the user's command:
+
+- **show**: Display PRD details (use get_prd tool)
+- **delete**: Confirm and delete PRD (use appropriate tools)  
+- **export**: Export specific PRD to markdown format (use get_prd tool)
+
+For PRD export specifically:
+1. Use the get_prd tool to retrieve the PRD by ID
+2. Format the PRD content as clean, well-structured markdown
+3. Include metadata (title, created date, status)
+4. If PRD not found, explain available PRDs or suggest using /prds
+
+Be efficient and direct - this is an operational task, not creative work.`;
+	}
+
 	return base + ` Be helpful and guide them toward using /create-prd, /brainstorm, or /coach based on their needs.`;
 }
 
-function getModelConfig(command?: string) {
-	// Fast operations that don't need reasoning: export, help, history, context management
-	const fastOperations = ['export', 'help', 'history', 'context'];
-	const isFastOperation = fastOperations.includes(command || '');
 
-	if (isFastOperation) {
-		// Use fast model without reasoning for operational tasks
-		return {
-			model: 'claude-4-haiku-20250514',
-			maxSteps: 3,
-			headers: {},
-			providerOptions: {}
-		};
-	} else {
-		// Use reasoning model for creative/complex tasks (PRDs, brainstorming, coaching)
-		return {
-			model: 'claude-4-sonnet-20250514',
-			maxSteps: 5,
-			headers: {
-				'anthropic-beta': 'interleaved-thinking-2025-05-14',
-			},
-			providerOptions: {
-				providerOptions: {
-					anthropic: {
-						thinking: { type: 'enabled', budgetTokens: 15000 },
-					} satisfies AnthropicProviderOptions,
-				}
-			}
-		};
-	}
-}

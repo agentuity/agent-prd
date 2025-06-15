@@ -12,7 +12,7 @@ export interface SlashCommand {
   args?: string[];
   examples?: string[];
   local?: boolean; // If true, handle locally without calling LLM
-  handler?: (args: string[], client: AgentClient, output: OutputManager) => Promise<void>;
+  handler?: (args: string[], client: AgentClient, output: OutputManager) => Promise<void | boolean>;
 }
 
 export const SLASH_COMMANDS: Record<string, SlashCommand> = {
@@ -66,9 +66,7 @@ export const SLASH_COMMANDS: Record<string, SlashCommand> = {
     name: 'prds',
     description: 'List and manage your PRDs',
     args: ['[action]'],
-    examples: ['/prds list', '/prds recent', '/prds search <term>'],
-    local: true,
-    handler: handlePRDsCommand
+    examples: ['/prds list', '/prds recent', '/prds search <term>']
   },
   'prd': {
     name: 'prd',
@@ -142,68 +140,22 @@ async function handleClearCommand(args: string[], client: AgentClient, output: O
   console.log(chalk.green('✓ Conversation history cleared'));
 }
 
-async function handlePRDsCommand(args: string[], client: AgentClient, output: OutputManager): Promise<void> {
-  const action = args[0] || 'list';
-  
-  switch (action) {
-    case 'list':
-    case 'recent':
-      console.log();
-      console.log(chalk.bold('Your Recent PRDs:'));
-      console.log();
-      
-      // Get conversation summary
-      const summaries = client.getConversationSummary();
-      const prdSummaries = summaries.filter(s => s.type === 'prd').slice(0, 10);
-      
-      if (prdSummaries.length === 0) {
-        console.log(chalk.dim('  No PRDs found. Create one with /create-prd'));
-      } else {
-        prdSummaries.forEach((prd, index) => {
-          const timeAgo = getTimeAgo(prd.timestamp);
-          console.log(`  ${chalk.cyan((index + 1).toString().padStart(2))}. ${prd.title}`);
-          console.log(`      ${chalk.dim(timeAgo)}`);
-        });
-      }
-      console.log();
-      break;
-      
-    case 'search':
-      const searchTerm = args.slice(1).join(' ');
-      if (!searchTerm) {
-        output.error('Please provide a search term: /prds search <term>');
-        return;
-      }
-      
-      console.log();
-      console.log(chalk.bold(`Searching PRDs for: "${searchTerm}"`));
-      console.log(chalk.dim('This will search through your conversation history...'));
-      console.log();
-      
-      // TODO: Implement actual search through stored PRDs
-      console.log(chalk.dim('Search functionality coming soon!'));
-      console.log();
-      break;
-      
-    default:
-      output.error(`Unknown action: ${action}. Use: list, recent, or search`);
-  }
-}
 
-async function handlePRDCommand(args: string[], client: AgentClient, output: OutputManager): Promise<void> {
+
+async function handlePRDCommand(args: string[], client: AgentClient, output: OutputManager): Promise<boolean> {
   const action = args[0];
   const id = args[1];
   
   if (!action) {
     output.error('Please specify an action: /prd <show|delete|export> [id]');
-    return;
+    return true;
   }
   
   switch (action) {
     case 'show':
       if (!id) {
         output.error('Please specify a PRD ID: /prd show <id>');
-        return;
+        return true;
       }
       console.log();
       console.log(chalk.bold(`PRD #${id}:`));
@@ -211,32 +163,30 @@ async function handlePRDCommand(args: string[], client: AgentClient, output: Out
       console.log();
       console.log(chalk.dim('PRD display functionality coming soon!'));
       console.log();
-      break;
+      return true;
       
     case 'delete':
       if (!id) {
         output.error('Please specify a PRD ID: /prd delete <id>');
-        return;
+        return true;
       }
       console.log();
       console.log(chalk.yellow(`⚠ Delete PRD #${id}? This cannot be undone.`));
       console.log(chalk.dim('Delete functionality coming soon!'));
       console.log();
-      break;
+      return true;
       
     case 'export':
       if (!id) {
         output.error('Please specify a PRD ID: /prd export <id>');
-        return;
+        return true; // Handled locally
       }
-      console.log();
-      console.log(chalk.bold(`Exporting PRD #${id} to markdown...`));
-      console.log(chalk.dim('Markdown export functionality coming soon!'));
-      console.log();
-      break;
+      // Let the agent handle the export - return false to send to agent
+      return false;
       
     default:
       output.error(`Unknown action: ${action}. Use: show, delete, or export`);
+      return true;
   }
 }
 
@@ -258,20 +208,7 @@ async function handleReasoningToggle(args: string[], client: AgentClient, output
   console.log();
 }
 
-function getTimeAgo(timestamp: Date): string {
-  const now = new Date();
-  const diffMs = now.getTime() - timestamp.getTime();
-  const diffMins = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  
-  if (diffMins < 1) return 'just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  
-  return timestamp.toLocaleDateString();
-}
+
 
 export function getCommandHints(input: string): string[] {
   const hints: string[] = [];
@@ -365,8 +302,8 @@ export async function handleSlashCommand(
   
   if (command.local && command.handler) {
     // Handle locally without calling LLM
-    await command.handler(args, client, output);
-    return true;
+    const result = await command.handler(args, client, output);
+    return result !== false; // Return false only if handler explicitly returns false
   }
   
   // For non-local commands, return false to let REPL send to agent
