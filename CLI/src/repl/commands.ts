@@ -55,7 +55,7 @@ export function getCommandHelp(commandName: string): string {
     'template': 'Select and use a specific template (e.g., /template saas-product)',
     'create-prd': 'Start creating a new PRD (e.g., /create-prd mobile task app)',
     'brainstorm': 'Start a brainstorming session (e.g., /brainstorm user retention)',
-    'export': 'Export current work in specified format (e.g., /export pdf)',
+    'export': 'Export current work to markdown format',
     'coach': 'Get personalized product management coaching',
     'config': 'Manage AgentPM configuration settings',
     'history': 'Show conversation history and past PRDs'
@@ -82,9 +82,7 @@ export function validateCommandArgs(command: ParsedCommand): { valid: boolean; e
       }
       break;
     case 'export':
-      if (command.args.length === 0) {
-        return { valid: false, error: 'Export format is required (e.g., pdf, md, confluence).' };
-      }
+      // No arguments required - defaults to markdown
       break;
   }
   

@@ -200,7 +200,7 @@ function showHelp() {
   console.log(chalk.gray('  /template <name>         - Use a specific template'));
   console.log(chalk.gray('  /create-prd <idea>       - Create a new PRD'));
   console.log(chalk.gray('  /brainstorm <topic>      - Start brainstorming session'));
-  console.log(chalk.gray('  /export <format>         - Export current work'));
+  console.log(chalk.gray('  /export                  - Export current work to markdown'));
   console.log(chalk.gray('  /coach                   - Get PM coaching'));
   console.log(chalk.gray('  /history                 - Show conversation history'));
   console.log();
