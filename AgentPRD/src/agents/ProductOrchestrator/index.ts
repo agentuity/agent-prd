@@ -47,7 +47,7 @@ export default async function ProductOrchestrator(
 		let userId: string | undefined;
 
 		let clientConversationHistory: any[] = [];
-		
+
 		if (contentType === 'application/json') {
 			try {
 				const requestData = await req.data.json() as any;
@@ -86,7 +86,7 @@ export default async function ProductOrchestrator(
 		} else {
 			// Fallback to KV storage if no client history (session recovery)
 			try {
-				const stored = await ctx.kv.get('default', contextKey);
+				const stored = await ctx.kv.get(KV_NAMESPACE, contextKey);
 				if (stored.exists) {
 					conversationContext = await stored.data.json() as unknown as ConversationContext;
 					ctx.logger.info('Loaded conversation from KV storage', { messageCount: conversationContext.messages.length });
@@ -124,12 +124,10 @@ export default async function ProductOrchestrator(
 			});
 		}
 
-
-
 		const systemPrompt = getSystemPrompt(command);
 
 		const result = streamText({
-			model: openai('gpt-4o'), // Use gpt-4o instead of o3 for now
+			model: openai('o3-2025-04-16'),
 			system: systemPrompt,
 			messages: messages,
 			maxTokens: 3000,
@@ -155,7 +153,7 @@ export default async function ProductOrchestrator(
 				});
 
 				try {
-					await ctx.kv.set('default', contextKey, conversationContext);
+					await ctx.kv.set(KV_NAMESPACE, contextKey, conversationContext);
 					ctx.logger.info('Conversation saved to KV', { sessionId, messageCount: conversationContext.messages.length });
 				} catch (error) {
 					ctx.logger.error('Failed to save conversation', { error });
@@ -178,7 +176,7 @@ export default async function ProductOrchestrator(
 			});
 
 			try {
-				await ctx.kv.set('default', contextKey, conversationContext);
+				await ctx.kv.set(KV_NAMESPACE, contextKey, conversationContext);
 				ctx.logger.info('Conversation saved to KV', { sessionId, messageCount: conversationContext.messages.length });
 			} catch (error) {
 				ctx.logger.error('Failed to save conversation', { error });
