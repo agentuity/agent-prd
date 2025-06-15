@@ -13,6 +13,9 @@ import {
   completeCommand,
   SLASH_COMMANDS 
 } from './slash-commands.js';
+import { StreamingHandler } from '../utils/streaming-handler.js';
+import { showWelcome, showUserMessage, showAgentHeader, showAgentFooter, showFormattedAgentContent } from '../utils/ascii-art.js';
+import { getEnhancedInput } from '../utils/enhanced-input.js';
 
 interface REPLOptions {
   approvalMode: 'suggest' | 'auto-edit' | 'full-auto';
@@ -22,6 +25,7 @@ interface REPLOptions {
 export async function startEnhancedREPL(options: REPLOptions) {
   const client = new AgentClient(options);
   const output = new OutputManager(options.verbose);
+  const streamingHandler = new StreamingHandler();
   
   // Setup Ctrl+C handler
   process.on('SIGINT', () => {
@@ -29,16 +33,17 @@ export async function startEnhancedREPL(options: REPLOptions) {
     process.exit(0);
   });
   
-  output.info('Connected to AgentPRD cloud agent');
-  console.log(chalk.dim('Approval mode:'), chalk.cyan(options.approvalMode));
-  console.log(chalk.dim('Type /help for commands, Tab for completion, Ctrl+C to exit'));
-  console.log();
+  // Enable reasoning display by default if not set
+  if (process.env.AGENTPM_SHOW_REASONING === undefined) {
+    process.env.AGENTPM_SHOW_REASONING = 'true';
+  }
   
-  // Show welcome hints
-  console.log(chalk.dim('Quick start:'));
-  console.log(chalk.dim('  /create-prd mobile analytics app'));
-  console.log(chalk.dim('  /brainstorm user onboarding'));
-  console.log(chalk.dim('  /coach prioritization frameworks'));
+  // Show enhanced welcome
+  showWelcome();
+  console.log(chalk.dim('Approval mode:'), chalk.cyan(options.approvalMode));
+  if (process.env.AGENTPM_SHOW_REASONING === 'true') {
+    console.log(chalk.dim('Reasoning display:'), chalk.yellow('enabled'));
+  }
   console.log();
   
   // REPL loop
@@ -60,24 +65,23 @@ export async function startEnhancedREPL(options: REPLOptions) {
         // If not handled locally, continue to send to agent
       }
       
-      // Send to agent with streaming
-      console.log();
-      console.log(chalk.blue('🤖 AgentPRD:'));
-      console.log(chalk.dim('─'.repeat(50)));
+      // Show user message with enhanced formatting
+      showUserMessage(userInput);
+      
+      // Send to agent with enhanced streaming
+      streamingHandler.resetState();
+      showAgentHeader();
       
       try {
-        let isFirstChunk = true;
         await client.streamMessage(userInput, getCommandFromInput(userInput), (chunk) => {
-          if (isFirstChunk) {
-            isFirstChunk = false;
-          }
-          process.stdout.write(chunk);
+          streamingHandler.processChunk(chunk);
         });
         
-        console.log(); // New line after streaming
-        console.log();
+        streamingHandler.finish();
+        showAgentFooter();
         
       } catch (error) {
+        streamingHandler.finish();
         if (error instanceof AgentCommunicationError) {
           handleError(error, output);
         } else {
@@ -97,6 +101,7 @@ export async function startEnhancedREPL(options: REPLOptions) {
 }
 
 async function getInputWithHints(): Promise<string> {
+  // Use simple input for now to avoid issues
   const userInput = await input({
     message: chalk.blue('AgentPM>'),
     theme: {
@@ -126,7 +131,7 @@ function showAvailableCommands() {
   console.log(chalk.bold('Available Commands:'));
   
   const commands = Object.values(SLASH_COMMANDS)
-    .filter(cmd => !['quit', 'exit'].includes(cmd.name)) // Hide exit commands from hints
+    .filter(cmd => !['quit'].includes(cmd.name)) // Hide exit commands from hints
     .slice(0, 6); // Show top 6 most useful commands
   
   commands.forEach(cmd => {

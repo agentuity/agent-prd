@@ -63,15 +63,31 @@ export const SLASH_COMMANDS: Record<string, SlashCommand> = {
     args: ['[format]'],
     examples: ['/export markdown', '/export pdf', '/export']
   },
+  'prds': {
+    name: 'prds',
+    description: 'List and manage your PRDs',
+    args: ['[action]'],
+    examples: ['/prds list', '/prds recent', '/prds search <term>'],
+    local: true,
+    handler: handlePRDsCommand
+  },
+  'prd': {
+    name: 'prd',
+    description: 'Work with a specific PRD',
+    args: ['<action>', '[id]'],
+    examples: ['/prd show <id>', '/prd delete <id>', '/prd export <id>'],
+    local: true,
+    handler: handlePRDCommand
+  },
+  'reasoning': {
+    name: 'reasoning',
+    description: 'Toggle display of AI reasoning process',
+    local: true,
+    handler: handleReasoningToggle
+  },
   'quit': {
     name: 'quit',
     description: 'Exit AgentPM',
-    local: true,
-    handler: handleQuitCommand
-  },
-  'exit': {
-    name: 'exit',
-    description: 'Exit AgentPM (alias for quit)',
     local: true,
     handler: handleQuitCommand
   },
@@ -125,6 +141,137 @@ async function handleQuitCommand(args: string[], client: AgentClient, output: Ou
 async function handleClearCommand(args: string[], client: AgentClient, output: OutputManager): Promise<void> {
   client.clearSession();
   console.log(chalk.green('✓ Conversation history cleared'));
+}
+
+async function handlePRDsCommand(args: string[], client: AgentClient, output: OutputManager): Promise<void> {
+  const action = args[0] || 'list';
+  
+  switch (action) {
+    case 'list':
+    case 'recent':
+      console.log();
+      console.log(chalk.bold('Your Recent PRDs:'));
+      console.log();
+      
+      // Get conversation summary
+      const summaries = client.getConversationSummary();
+      const prdSummaries = summaries.filter(s => s.type === 'prd').slice(0, 10);
+      
+      if (prdSummaries.length === 0) {
+        console.log(chalk.dim('  No PRDs found. Create one with /create-prd'));
+      } else {
+        prdSummaries.forEach((prd, index) => {
+          const timeAgo = getTimeAgo(prd.timestamp);
+          console.log(`  ${chalk.cyan((index + 1).toString().padStart(2))}. ${prd.title}`);
+          console.log(`      ${chalk.dim(timeAgo)}`);
+        });
+      }
+      console.log();
+      break;
+      
+    case 'search':
+      const searchTerm = args.slice(1).join(' ');
+      if (!searchTerm) {
+        output.error('Please provide a search term: /prds search <term>');
+        return;
+      }
+      
+      console.log();
+      console.log(chalk.bold(`Searching PRDs for: "${searchTerm}"`));
+      console.log(chalk.dim('This will search through your conversation history...'));
+      console.log();
+      
+      // TODO: Implement actual search through stored PRDs
+      console.log(chalk.dim('Search functionality coming soon!'));
+      console.log();
+      break;
+      
+    default:
+      output.error(`Unknown action: ${action}. Use: list, recent, or search`);
+  }
+}
+
+async function handlePRDCommand(args: string[], client: AgentClient, output: OutputManager): Promise<void> {
+  const action = args[0];
+  const id = args[1];
+  
+  if (!action) {
+    output.error('Please specify an action: /prd <show|delete|export> [id]');
+    return;
+  }
+  
+  switch (action) {
+    case 'show':
+      if (!id) {
+        output.error('Please specify a PRD ID: /prd show <id>');
+        return;
+      }
+      console.log();
+      console.log(chalk.bold(`PRD #${id}:`));
+      console.log(chalk.dim('Retrieving PRD from storage...'));
+      console.log();
+      console.log(chalk.dim('PRD display functionality coming soon!'));
+      console.log();
+      break;
+      
+    case 'delete':
+      if (!id) {
+        output.error('Please specify a PRD ID: /prd delete <id>');
+        return;
+      }
+      console.log();
+      console.log(chalk.yellow(`⚠ Delete PRD #${id}? This cannot be undone.`));
+      console.log(chalk.dim('Delete functionality coming soon!'));
+      console.log();
+      break;
+      
+    case 'export':
+      if (!id) {
+        output.error('Please specify a PRD ID: /prd export <id>');
+        return;
+      }
+      console.log();
+      console.log(chalk.bold(`Exporting PRD #${id}...`));
+      console.log(chalk.dim('Export functionality coming soon!'));
+      console.log();
+      break;
+      
+    default:
+      output.error(`Unknown action: ${action}. Use: show, delete, or export`);
+  }
+}
+
+async function handleReasoningToggle(args: string[], client: AgentClient, output: OutputManager): Promise<void> {
+  const currentSetting = process.env.AGENTPM_SHOW_REASONING === 'true';
+  const newSetting = !currentSetting;
+  
+  // Toggle the environment variable
+  process.env.AGENTPM_SHOW_REASONING = newSetting.toString();
+  
+  console.log();
+  if (newSetting) {
+    console.log(chalk.green('✓ Reasoning display enabled'));
+    console.log(chalk.dim('  You will now see the AI\'s thinking process'));
+  } else {
+    console.log(chalk.yellow('○ Reasoning display disabled'));
+    console.log(chalk.dim('  Only final responses will be shown'));
+  }
+  console.log();
+}
+
+function getTimeAgo(timestamp: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - timestamp.getTime();
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  
+  return timestamp.toLocaleDateString();
 }
 
 export function getCommandHints(input: string): string[] {
