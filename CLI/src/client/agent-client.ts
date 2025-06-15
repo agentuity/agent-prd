@@ -15,7 +15,14 @@ export interface AgentRequest {
     files?: FileAttachment[];
     approvalMode?: 'suggest' | 'auto-edit' | 'full-auto';
     command?: string;
+    conversationHistory?: ConversationMessage[];
   };
+}
+
+export interface ConversationMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
 }
 
 export interface AgentResponse {
@@ -55,6 +62,7 @@ export class AgentClient {
   private options: ClientOptions;
   private sessionId?: string;
   private baseUrl?: string;
+  private conversationHistory: ConversationMessage[] = [];
 
   constructor(options: ClientOptions) {
     this.options = options;
@@ -80,13 +88,21 @@ export class AgentClient {
   }
 
   async sendMessage(message: string, command?: string): Promise<AgentResponse> {
+    // Add user message to history
+    this.conversationHistory.push({
+      role: 'user',
+      content: message,
+      timestamp: new Date().toISOString()
+    });
+
     const request: AgentRequest = {
       channel: 'cli',
       message,
       context: {
         sessionId: this.sessionId,
         approvalMode: this.options.approvalMode,
-        command
+        command,
+        conversationHistory: this.conversationHistory
       }
     };
 
@@ -129,12 +145,32 @@ export class AgentClient {
         throw new Error(`HTTP ${response.status}: ${response.statusText}\n${errorText}`);
       }
 
-      const agentResponse = await response.json() as AgentResponse;
+      // Handle both JSON and text responses
+      let agentResponse: AgentResponse;
+      const responseText = await response.text();
+      
+      try {
+        agentResponse = JSON.parse(responseText) as AgentResponse;
+      } catch {
+        // If not JSON, treat as plain text content
+        agentResponse = {
+          content: responseText,
+          sessionId: this.sessionId || this.generateSessionId(),
+          needsApproval: this.options.approvalMode === 'suggest'
+        };
+      }
 
       // Store session ID for continuity
       if (!this.sessionId) {
         this.sessionId = agentResponse.sessionId;
       }
+
+      // Add assistant response to conversation history
+      this.conversationHistory.push({
+        role: 'assistant',
+        content: agentResponse.content,
+        timestamp: new Date().toISOString()
+      });
 
       return agentResponse;
 
@@ -147,13 +183,21 @@ export class AgentClient {
   }
 
   async streamMessage(message: string, command?: string, onChunk?: (chunk: string) => void): Promise<AgentResponse> {
+    // Add user message to history
+    this.conversationHistory.push({
+      role: 'user',
+      content: message,
+      timestamp: new Date().toISOString()
+    });
+
     const request: AgentRequest = {
       channel: 'cli',
       message,
       context: {
         sessionId: this.sessionId,
         approvalMode: this.options.approvalMode,
-        command
+        command,
+        conversationHistory: this.conversationHistory
       }
     };
 
@@ -167,6 +211,7 @@ export class AgentClient {
 
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
+        'User-Agent': 'agentpm-cli/1.0',
         'x-session-id': this.sessionId || '',
       };
 
@@ -192,9 +237,8 @@ export class AgentClient {
         throw new Error(`HTTP ${response.status}: ${response.statusText}\n${errorText}`);
       }
 
-      // Handle streaming response
+      // Handle streaming response from Agentuity agent
       let fullResponse = '';
-      let lineBuffer = '';
 
       if (response.body && onChunk) {
         const reader = response.body.getReader();
@@ -206,53 +250,36 @@ export class AgentClient {
 
           const chunk = decoder.decode(value, { stream: true });
           fullResponse += chunk;
-          lineBuffer += chunk;
-
-          // Process complete lines for better rendering
-          const lines = lineBuffer.split('\n');
-          lineBuffer = lines.pop() || ''; // Keep incomplete line in buffer
-
-          for (const line of lines) {
-            if (line.trim()) {
-              onChunk(`${line}\n`);
-            }
-          }
-        }
-
-        // Process any remaining content in buffer
-        if (lineBuffer.trim()) {
-          onChunk(lineBuffer);
+          
+          // Stream each chunk directly to the user
+          onChunk(chunk);
         }
       } else {
         // Fallback to non-streaming
-        const text = await response.text();
-        try {
-          const jsonResponse = JSON.parse(text) as AgentResponse;
-          fullResponse = jsonResponse.content;
-          if (onChunk) {
-            onChunk(fullResponse);
-          }
-
-          // Store session ID for continuity
-          if (!this.sessionId) {
-            this.sessionId = jsonResponse.sessionId;
-          }
-
-          return jsonResponse;
-        } catch {
-          fullResponse = text;
-          if (onChunk) {
-            onChunk(fullResponse);
-          }
+        fullResponse = await response.text();
+        if (onChunk) {
+          onChunk(fullResponse);
         }
       }
 
-      // Return structured response
+      // Return structured response - streaming gives us just text content
       const agentResponse: AgentResponse = {
-        content: fullResponse,
+        content: fullResponse.trim(),
         sessionId: this.sessionId || this.generateSessionId(),
         needsApproval: this.options.approvalMode === 'suggest'
       };
+
+      // Generate a new session ID if we don't have one
+      if (!this.sessionId) {
+        this.sessionId = this.generateSessionId();
+      }
+
+      // Add assistant response to conversation history
+      this.conversationHistory.push({
+        role: 'assistant',
+        content: agentResponse.content,
+        timestamp: new Date().toISOString()
+      });
 
       return agentResponse;
 
@@ -288,5 +315,33 @@ export class AgentClient {
 
   clearSession(): void {
     this.sessionId = undefined;
+    this.conversationHistory = [];
+  }
+
+  getConversationHistory(): ConversationMessage[] {
+    return [...this.conversationHistory];
+  }
+
+  getConversationSummary(): Array<{ type: 'prd' | 'brainstorm' | 'coach', title: string, timestamp: Date }> {
+    const summaries: Array<{ type: 'prd' | 'brainstorm' | 'coach', title: string, timestamp: Date }> = [];
+    
+    for (let i = 0; i < this.conversationHistory.length; i += 2) {
+      const userMsg = this.conversationHistory[i];
+      const assistantMsg = this.conversationHistory[i + 1];
+      
+      if (userMsg && userMsg.role === 'user') {
+        const type = userMsg.content.includes('prd') ? 'prd' : 
+                    userMsg.content.includes('brainstorm') ? 'brainstorm' : 'coach';
+        const title = userMsg.content.slice(0, 40) + (userMsg.content.length > 40 ? '...' : '');
+        
+        summaries.push({
+          type,
+          title,
+          timestamp: new Date(userMsg.timestamp)
+        });
+      }
+    }
+    
+    return summaries;
   }
 }

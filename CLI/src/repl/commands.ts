@@ -33,7 +33,8 @@ export function parseShortCommand(input: string): ParsedCommand | null {
     'brainstorm',
     'export',
     'coach',
-    'config'
+    'config',
+    'history'
   ];
   
   if (!validCommands.includes(name)) {
@@ -56,7 +57,8 @@ export function getCommandHelp(commandName: string): string {
     'brainstorm': 'Start a brainstorming session (e.g., /brainstorm user retention)',
     'export': 'Export current work in specified format (e.g., /export pdf)',
     'coach': 'Get personalized product management coaching',
-    'config': 'Manage AgentPM configuration settings'
+    'config': 'Manage AgentPM configuration settings',
+    'history': 'Show conversation history and past PRDs'
   };
   
   return helpText[commandName] || 'Unknown command';

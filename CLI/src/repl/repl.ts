@@ -73,6 +73,12 @@ async function handleShortCommand(command: string, client: AgentClient, output: 
     return;
   }
   
+  // Handle local commands first
+  if (parsedCommand.name === 'history') {
+    showConversationHistory(client);
+    return;
+  }
+  
   // Validate command arguments
   const validation = validateCommandArgs(parsedCommand);
   if (!validation.valid) {
@@ -125,6 +131,12 @@ async function handleConversation(message: string, client: AgentClient, output: 
     
     console.log(); // New line after streaming
     
+    // Show conversation history count
+    const historyCount = client.getConversationHistory().length;
+    if (historyCount > 2) {
+      console.log(chalk.gray(`\n💬 Conversation: ${Math.floor(historyCount / 2)} exchanges`));
+    }
+    
     // Show files if any
     if (response.files && response.files.length > 0) {
       console.log(chalk.gray('\n📁 Generated files:'));
@@ -146,6 +158,39 @@ async function handleConversation(message: string, client: AgentClient, output: 
   }
 }
 
+function showConversationHistory(client: AgentClient) {
+  const history = client.getConversationHistory();
+  
+  if (history.length === 0) {
+    console.log(chalk.gray('\n📱 No conversation history yet.'));
+    console.log(chalk.gray('Start chatting to build up your conversation!'));
+    return;
+  }
+
+  console.log(chalk.blue('\n📱 Conversation History:'));
+  console.log(chalk.dim('─'.repeat(60)));
+  
+  const exchanges = Math.floor(history.length / 2);
+  console.log(chalk.gray(`${exchanges} exchanges in this session\n`));
+  
+  for (let i = 0; i < history.length; i += 2) {
+    const userMsg = history[i];
+    const assistantMsg = history[i + 1];
+    
+    if (userMsg && userMsg.role === 'user') {
+      const num = Math.floor(i / 2) + 1;
+      console.log(chalk.cyan(`${num}. You: `) + userMsg.content.slice(0, 100) + (userMsg.content.length > 100 ? '...' : ''));
+      
+      if (assistantMsg && assistantMsg.role === 'assistant') {
+        console.log(chalk.blue(`   AgentPRD: `) + assistantMsg.content.slice(0, 100) + (assistantMsg.content.length > 100 ? '...' : ''));
+      }
+      console.log();
+    }
+  }
+  
+  console.log(chalk.gray('💡 Tip: Your conversation context is preserved throughout this session!'));
+}
+
 function showHelp() {
   console.log(chalk.blue('📖 AgentPM Commands:'));
   console.log();
@@ -157,6 +202,7 @@ function showHelp() {
   console.log(chalk.gray('  /brainstorm <topic>      - Start brainstorming session'));
   console.log(chalk.gray('  /export <format>         - Export current work'));
   console.log(chalk.gray('  /coach                   - Get PM coaching'));
+  console.log(chalk.gray('  /history                 - Show conversation history'));
   console.log();
   console.log(chalk.cyan('Conversation:'));
   console.log(chalk.gray('  Just type naturally! Ask me to create PRDs, brainstorm ideas,'));
