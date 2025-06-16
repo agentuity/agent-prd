@@ -24,20 +24,19 @@ export const HelpOverlay: React.FC<HelpOverlayProps> = ({ onClose }) => {
   ];
 
   const slashCommands = [
-    { cmd: '/help', description: 'Show this help dialog' },
-    { cmd: '/clear', description: 'Clear conversation history' },
-    { cmd: '/export', description: 'Export conversation to file' },
+    { cmd: '/create-prd <topic>', description: 'Create new PRD document' },
+    { cmd: '/brainstorm <topic>', description: 'Start brainstorming session' },
+    { cmd: '/coach <question>', description: 'Get PM coaching advice' },
+    { cmd: '/prds', description: 'List and manage your PRDs' },
     { cmd: '/prd show <id>', description: 'Show specific PRD by ID' },
-    { cmd: '/prd delete <id>', description: 'Delete specific PRD by ID' },
     { cmd: '/prd export <id>', description: 'Export specific PRD by ID' },
-    { cmd: '/prds', description: 'List and manage PRDs' },
     { cmd: '/context set <desc>', description: 'Set work context' },
     { cmd: '/context get', description: 'Show current context' },
-    { cmd: '/create-prd <topic>', description: 'Create new PRD' },
-    { cmd: '/brainstorm <topic>', description: 'Start brainstorming' },
-    { cmd: '/coach <question>', description: 'Get PM coaching' },
+    { cmd: '/export', description: 'Export conversation to file' },
     { cmd: '/history', description: 'Show work history' },
+    { cmd: '/clear', description: 'Clear conversation history' },
     { cmd: '/reasoning', description: 'Toggle AI reasoning display' },
+    { cmd: '/help', description: 'Show this help dialog' },
   ];
 
 

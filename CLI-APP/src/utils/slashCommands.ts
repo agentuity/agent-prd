@@ -74,8 +74,8 @@ export const slashCommands: SlashCommand[] = [
     name: 'create-prd',
     description: 'Interactive PRD creation with custom structure',
     handler: (args, context) => {
-      // This will be handled by the agent
-      return;
+      // This should be handled by the agent
+      return false; // Send to agent
     }
   },
   {
