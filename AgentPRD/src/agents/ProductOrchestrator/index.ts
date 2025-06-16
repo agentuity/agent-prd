@@ -170,10 +170,54 @@ export default async function ProductOrchestrator(
 					try {
 						const encoder = new TextEncoder();
 						
-						// Stream text chunks as they arrive
-						for await (const chunk of result.textStream) {
-							fullResponse += chunk;
-							controller.enqueue(encoder.encode(chunk));
+						// Stream all events including tool calls
+						for await (const chunk of result.fullStream) {
+							switch (chunk.type) {
+								case 'text-delta':
+									fullResponse += chunk.textDelta;
+									controller.enqueue(encoder.encode(chunk.textDelta));
+									break;
+									
+								case 'tool-call-streaming-start':
+									const toolStartEvent = {
+										type: 'tool-call-start',
+										toolName: chunk.toolName,
+										timestamp: Date.now()
+									};
+									controller.enqueue(encoder.encode(`\n__AGENTPRD_TOOL_EVENT__${JSON.stringify(toolStartEvent)}\n`));
+									break;
+									
+								case 'tool-call':
+									const toolCallEvent = {
+										type: 'tool-call',
+										toolName: chunk.toolName,
+										args: chunk.args,
+										toolCallId: chunk.toolCallId,
+										timestamp: Date.now()
+									};
+									controller.enqueue(encoder.encode(`\n__AGENTPRD_TOOL_EVENT__${JSON.stringify(toolCallEvent)}\n`));
+									break;
+									
+								case 'tool-result':
+									const toolResultEvent = {
+										type: 'tool-result',
+										toolCallId: chunk.toolCallId,
+										toolName: chunk.toolName || 'unknown',
+										result: chunk.result,
+										timestamp: Date.now()
+									};
+									controller.enqueue(encoder.encode(`\n__AGENTPRD_TOOL_EVENT__${JSON.stringify(toolResultEvent)}\n`));
+									break;
+									
+								case 'step-finish':
+									const stepEvent = {
+										type: 'step-finish',
+										isContinued: chunk.isContinued,
+										timestamp: Date.now()
+									};
+									controller.enqueue(encoder.encode(`\n__AGENTPRD_TOOL_EVENT__${JSON.stringify(stepEvent)}\n`));
+									break;
+							}
 						}
 
 						// After streaming is complete, save conversation and send metadata
@@ -215,8 +259,10 @@ export default async function ProductOrchestrator(
 		} else {
 			// For other channels (email, Discord, etc.), collect full response
 			let fullResponse = '';
-			for await (const chunk of result.textStream) {
-				fullResponse += chunk;
+			for await (const chunk of result.fullStream) {
+				if (chunk.type === 'text-delta') {
+					fullResponse += chunk.textDelta;
+				}
 			}
 
 			// Add user message to conversation history (if not already there)

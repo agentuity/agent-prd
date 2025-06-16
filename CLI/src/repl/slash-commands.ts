@@ -158,10 +158,16 @@ async function handlePRDCommand(args: string[], client: AgentClient, output: Out
         return true;
       }
       console.log();
-      console.log(chalk.bold(`PRD #${id}:`));
+      console.log(chalk.bold(`📋 PRD #${id}:`));
       console.log(chalk.dim('Retrieving PRD from storage...'));
       console.log();
-      console.log(chalk.dim('PRD display functionality coming soon!'));
+      
+      try {
+        const response = await client.sendMessage(`Please retrieve and display PRD with ID "${id}" using the get_prd tool.`);
+        console.log(response.content);
+      } catch (error) {
+        output.error(`Failed to retrieve PRD: ${error}`);
+      }
       console.log();
       return true;
       

@@ -1,6 +1,16 @@
 /**
- * Enhanced streaming handler with reasoning detection for CLI-APP
+ * Enhanced streaming handler with reasoning detection and tool call events for CLI-APP
  */
+
+export interface ToolEvent {
+  type: 'tool-call-start' | 'tool-call' | 'tool-result' | 'step-finish';
+  toolName?: string;
+  args?: any;
+  result?: any;
+  toolCallId?: string;
+  isContinued?: boolean;
+  timestamp: number;
+}
 
 export interface StreamingState {
   buffer: string;
@@ -21,13 +31,16 @@ export class StreamingHandler {
 
   private onChunkCallback?: (chunk: string) => void;
   private onReasoningCallback?: (reasoning: string) => void;
+  private onToolEventCallback?: (event: ToolEvent) => void;
 
   constructor(
     onChunk?: (chunk: string) => void,
-    onReasoning?: (reasoning: string) => void
+    onReasoning?: (reasoning: string) => void,
+    onToolEvent?: (event: ToolEvent) => void
   ) {
     this.onChunkCallback = onChunk;
     this.onReasoningCallback = onReasoning;
+    this.onToolEventCallback = onToolEvent;
     this.resetState();
   }
 
@@ -108,6 +121,11 @@ export class StreamingHandler {
 
   hasContent(): boolean {
     return this.state.buffer.length > 0 || this.state.reasoningBuffer.length > 0;
+  }
+
+  // Process tool events
+  processToolEvent(event: ToolEvent): void {
+    this.onToolEventCallback?.(event);
   }
 
   // Enable/disable reasoning display

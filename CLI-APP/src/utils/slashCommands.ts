@@ -99,7 +99,7 @@ export const slashCommands: SlashCommand[] = [
     handler: (args, context) => {
       handleReasoningToggle(args, context);
     }
-  }
+  },
 ];
 
 export const parseSlashCommand = (input: string): { command: string; args: string[]; isSlashCommand: boolean } => {

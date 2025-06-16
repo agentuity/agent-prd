@@ -125,7 +125,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
         const headingColor = node.level === 1 ? 'blue' : node.level === 2 ? 'green' : 'cyan';
         const prefix = '#'.repeat(node.level || 1);
         return (
-          <Box key={index} marginY={1}>
+          <Box key={index} marginBottom={1}>
             <Text color={headingColor} bold>
               {prefix} {node.content}
             </Text>
@@ -134,7 +134,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
 
       case 'paragraph':
         return (
-          <Box key={index} marginY={1}>
+          <Box key={index} marginBottom={1}>
             <Text>
               {node.children?.map((child, childIndex) => renderInlineNode(child, childIndex))}
             </Text>
@@ -143,7 +143,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
 
       case 'codeblock':
         return (
-          <Box key={index} marginY={1} borderStyle="single" borderColor="gray" paddingX={1}>
+          <Box key={index} borderStyle="single" borderColor="gray" paddingX={1}>
             <Box flexDirection="column">
               {node.language && (
                 <Text color="gray" dimColor>

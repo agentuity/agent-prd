@@ -4,7 +4,7 @@ import { ChatContext } from './context/ChatContext.js';
 import { ErrorBoundary } from './components/common/ErrorBoundary.js';
 import { OnboardingWizard } from './components/onboarding/OnboardingWizard.js';
 import { config } from './utils/config.js';
-import type { Message } from './types.js';
+import type { Message, ToolEvent } from './types.js';
 
 interface AppProps {
   initialPrompt?: string;
@@ -14,6 +14,7 @@ interface AppProps {
 export const App: React.FC<AppProps> = ({ initialPrompt, options }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [toolEvents, setToolEvents] = useState<ToolEvent[]>([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
   
   useEffect(() => {
@@ -41,7 +42,9 @@ export const App: React.FC<AppProps> = ({ initialPrompt, options }) => {
         messages,
         setMessages,
         isStreaming,
-        setIsStreaming
+        setIsStreaming,
+        toolEvents,
+        setToolEvents
       }}>
         <AppLayout initialPrompt={initialPrompt} options={options} />
       </ChatContext.Provider>
