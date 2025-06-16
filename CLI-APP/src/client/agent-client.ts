@@ -25,6 +25,16 @@ export interface ConversationMessage {
   timestamp: string;
 }
 
+export interface ToolEvent {
+  type: 'tool-call-start' | 'tool-call' | 'tool-result' | 'step-finish';
+  toolName?: string;
+  args?: any;
+  result?: any;
+  toolCallId?: string;
+  isContinued?: boolean;
+  timestamp: number;
+}
+
 export interface AgentResponse {
   content: string;
   actions?: Action[];
@@ -208,7 +218,7 @@ export class AgentClient {
     }
   }
 
-  async streamMessage(message: string, command?: string, onChunk?: (chunk: string) => void): Promise<AgentResponse> {
+  async streamMessage(message: string, command?: string, onChunk?: (chunk: string) => void, onToolEvent?: (event: ToolEvent) => void): Promise<AgentResponse> {
     // Add user message to history
     this.conversationHistory.push({
       role: 'user',
@@ -278,6 +288,30 @@ export class AgentClient {
           if (done) break;
 
           const chunk = decoder.decode(value, { stream: true });
+          
+          // Check if this chunk contains tool event markers
+          if (chunk.includes('__AGENTPRD_TOOL_EVENT__')) {
+            const parts = chunk.split('__AGENTPRD_TOOL_EVENT__');
+            const textPart = parts[0];
+            const toolEventJson = parts[1];
+            
+            // Process text part if available
+            if (textPart) {
+              fullResponse += textPart;
+              onChunk(textPart);
+            }
+            
+            // Process tool event if available
+            if (toolEventJson && onToolEvent) {
+              try {
+                const toolEvent = JSON.parse(toolEventJson.trim().split('\n')[0]);
+                onToolEvent(toolEvent);
+              } catch (e) {
+                console.warn('Failed to parse tool event:', e);
+              }
+            }
+            continue;
+          }
           
           // Check if this chunk contains metadata start marker
           if (chunk.includes('__AGENTPRD_METADATA__') && !collectingMetadata) {

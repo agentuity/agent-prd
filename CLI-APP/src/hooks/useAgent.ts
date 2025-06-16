@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { AgentClient, type AgentResponse, type ClientOptions } from '../client/agent-client.js';
+import { AgentClient, type AgentResponse, type ClientOptions, type ToolEvent } from '../client/agent-client.js';
 import { useChatContext } from '../context/ChatContext.js';
 import { generateId } from '../utils/helpers.js';
 import { StreamingHandler } from '../utils/streaming.js';
@@ -8,6 +8,7 @@ interface UseAgentOptions extends ClientOptions {
   onStreamChunk?: (chunk: string) => void;
   onError?: (error: Error) => void;
   onApprovalRequired?: (response: AgentResponse) => void;
+  onToolEvent?: (event: ToolEvent) => void;
 }
 
 export const useAgent = (options: UseAgentOptions = { approvalMode: 'suggest' }) => {
@@ -48,7 +49,7 @@ export const useAgent = (options: UseAgentOptions = { approvalMode: 'suggest' })
 
       let fullContent = '';
 
-      // Create enhanced streaming handler with reasoning detection
+      // Create enhanced streaming handler with reasoning detection and tool events
       const streamingHandler = new StreamingHandler(
         (chunk: string) => {
           // Regular content chunk
@@ -75,6 +76,48 @@ export const useAgent = (options: UseAgentOptions = { approvalMode: 'suggest' })
             };
             setMessages(prev => [...prev, reasoningMessage]);
           }
+        },
+        (toolEvent: ToolEvent) => {
+          // Filter out unwanted tool events
+          const shouldHideEvent = (
+            // Hide unknown tools
+            !toolEvent.toolName ||
+            // Hide step-finish events (they're just noise)
+            toolEvent.type === 'step-finish' ||
+            // Hide tool-call-start events (only show completed ones)
+            toolEvent.type === 'tool-call-start'
+          );
+
+          if (shouldHideEvent) {
+            // Still call the original handler for tracking
+            options.onToolEvent?.(toolEvent);
+            return;
+          }
+
+          // Create inline tool message for meaningful events
+          const toolMessage = {
+            id: generateId(),
+            type: 'tool-call' as const,
+            content: `Tool: ${toolEvent.toolName} - ${toolEvent.type}`,
+            timestamp: new Date(),
+            toolEvent: toolEvent
+          };
+
+          // Insert tool message into conversation
+          setMessages(prev => {
+            // Find the streaming message and insert tool message before it
+            const streamingIndex = prev.findIndex(msg => msg.id === responseId);
+            if (streamingIndex >= 0) {
+              const newMessages = [...prev];
+              newMessages.splice(streamingIndex, 0, toolMessage);
+              return newMessages;
+            }
+            // If no streaming message found, append to end
+            return [...prev, toolMessage];
+          });
+
+          // Also call the original handler
+          options.onToolEvent?.(toolEvent);
         }
       );
 
@@ -84,6 +127,9 @@ export const useAgent = (options: UseAgentOptions = { approvalMode: 'suggest' })
         command,
         (chunk: string) => {
           streamingHandler.processChunk(chunk);
+        },
+        (toolEvent: ToolEvent) => {
+          streamingHandler.processToolEvent(toolEvent);
         }
       );
 

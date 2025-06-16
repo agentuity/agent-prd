@@ -16,17 +16,23 @@ A comprehensive AI-powered product management solution built with **Agentuity**,
 ## ✨ Key Features
 
 - 🤖 **AgentPRD**: Cloud-native AI agent for intelligent product management assistance
-- 💻 **AgentPM CLI**: Terminal-based interface for local product management workflows
+- 💻 **AgentPM CLI-APP**: Modern terminal UI with React/Ink for enhanced user experience
 - 📝 **PRD Generation**: Create comprehensive Product Requirements Documents from simple ideas
 - 🧠 **Feature Brainstorming**: AI-assisted ideation and strategic planning
 - 🎯 **PM Coaching**: Get personalized product management guidance and feedback
-- 📋 **Template Management**: Consistent documentation with reusable templates
+- 🔧 **Real-time Tool Visibility**: Claude Code-style inline tool call streaming
+- 📋 **Context Management**: Maintain work context and PRD history across sessions
 - 📤 **Multi-format Export**: Export to PDF, Confluence, Markdown, and more
 - 🚀 **Agentuity Native**: Built for seamless deployment on Agentuity platform
 
 ## 🔄 How It Works
 
-The suite consists of two complementary components: AgentPRD (cloud agent) handles the AI intelligence and reasoning, while AgentPM CLI provides a lightweight terminal interface. Users can interact through either component, with session context maintained in the cloud.
+The suite consists of three complementary components:
+- **AgentPRD**: Cloud agent handling AI intelligence, tool execution, and data persistence
+- **CLI-APP**: Modern terminal UI with real-time streaming and inline tool visibility
+- **CLI** (Legacy): Original lightweight CLI interface
+
+The modern CLI-APP provides Claude Code-style transparency, showing tool calls inline as they happen.
 
 ## 🚀 Quick Start with Agentuity
 
@@ -62,9 +68,19 @@ agentuity dev
 
 This launches the Agentuity Console for real-time agent testing.
 
-#### AgentPM CLI
+#### AgentPM CLI-APP (Modern TUI)
 
-Set up and run the CLI:
+Set up and run the modern CLI:
+
+```bash
+cd CLI-APP
+bun install
+bun run dev
+```
+
+#### Legacy CLI
+
+For the original CLI:
 
 ```bash
 cd CLI
@@ -81,7 +97,14 @@ cd AgentPRD
 agentuity deploy
 ```
 
-Build the CLI for distribution:
+Build the CLI-APP for distribution:
+
+```bash
+cd CLI-APP
+bun run build
+```
+
+Or build the legacy CLI:
 
 ```bash
 cd CLI
@@ -98,16 +121,26 @@ bun run build
 🔹 Template Use: "Use the B2B SaaS template for a new analytics dashboard"
 ```
 
-#### CLI Interface
+#### CLI-APP Interface (Modern TUI)
 ```bash
 # Start interactive session
 agentpm
 
-# Quick commands
+# Quick commands with real-time tool visibility
 AgentPM> /create-prd mobile productivity app
 AgentPM> /brainstorm user onboarding
 AgentPM> /coach
-AgentPM> /export pdf
+AgentPM> /reasoning  # Toggle AI reasoning display
+AgentPM> /clear     # Clear chat and tool history
+```
+
+Tool calls appear inline:
+```
+🔧 SET WORK CONTEXT • ⚡ Executing... 
+📝 title: Mobile App PRD, description: Task management features
+
+🔧 STORE PRD • ✅ Completed
+📤 Created: Task Management App (prd_1234_abcd)
 ```
 
 ## 🏗️ Development
@@ -126,7 +159,20 @@ biome lint .
 agentuity deploy
 ```
 
-### AgentPM CLI
+### AgentPM CLI-APP (Modern TUI)
+```bash
+# Development mode with React/Ink
+cd CLI-APP
+bun run dev
+
+# Build for production
+bun run build
+
+# Start built application
+bun run start
+```
+
+### Legacy CLI
 ```bash
 # Development mode
 cd CLI
@@ -143,20 +189,28 @@ bun run start
 ```
 ├── AgentPRD/              # Agentuity cloud agent
 │   ├── src/
-│   │   ├── agents/        # Agent implementations
-│   │   └── tools/         # Agent tools and utilities
+│   │   ├── agents/        # Agent implementations with tool streaming
+│   │   └── tools/         # Context management tools (7 tools)
 │   ├── agentuity.yaml     # Agentuity configuration
 │   ├── biome.json         # Code formatting config
 │   └── package.json
-├── CLI/                   # Terminal CLI interface
+├── CLI-APP/               # Modern TUI with React/Ink
+│   ├── src/
+│   │   ├── components/    # React components (chat, tools, layout)
+│   │   ├── hooks/         # React hooks (useAgent, useApproval)
+│   │   ├── client/        # Agent communication with streaming
+│   │   ├── utils/         # Slash commands, config, streaming
+│   │   └── types.ts       # TypeScript definitions
+│   └── package.json
+├── CLI/                   # Legacy terminal CLI interface
 │   ├── src/
 │   │   ├── commands/      # CLI command handlers
 │   │   ├── repl/          # Interactive REPL
 │   │   ├── client/        # Agent communication
 │   │   └── utils/         # Configuration & utilities
 │   └── package.json
-└── AGENT.md              # Development guidelines
-```
+├── AGENT.md              # Development guidelines
+└── CLAUDE.md             # Claude Code guidance
 
 ### Environment Configuration
 
@@ -185,37 +239,42 @@ agentpm config set agentApiKey your_api_key
 
 ### Environment Variables
 Both components support environment variable configuration:
-- `AGENTPM_AGENT_URL`
-- `AGENTPM_AGENT_API_KEY`
-- `AGENTPM_APPROVAL_MODE`
+- `AGENTPM_AGENT_URL` - Agent endpoint URL
+- `AGENTPM_AGENT_API_KEY` - Authentication key
+- `AGENTPM_APPROVAL_MODE` - suggest | auto-edit | full-auto
+- `AGENTPM_SHOW_REASONING` - true/false for AI reasoning display
 
-## 🛠️ Code Style & Conventions
+## 🔧 Key Technologies
 
-### Formatting (Biome Configuration)
-- **Indentation**: 2 spaces
-- **Quotes**: Single quotes preferred
-- **Semicolons**: Required
-- **Trailing Commas**: ES5 style
-- **Imports**: Auto-organized
+### AgentPRD (Cloud Agent)
+- **Agentuity SDK** with AI SDK integration
+- **Claude 4 Sonnet** with reasoning capabilities
+- **Tool streaming** via `fullStream` events
+- **KV storage** for session persistence
 
-### TypeScript
-- Strict mode enabled
-- ES modules (`"type": "module"`)
-- Consistent naming conventions
-- Comprehensive type definitions
+### CLI-APP (Modern TUI)
+- **React + Ink** for terminal UI components
+- **Real-time streaming** with tool call visibility
+- **TypeScript** with strict mode
+- **Bun runtime** for fast execution
 
 ## 📊 Testing
 
 ### Interactive Testing
 - **AgentPRD**: Use `agentuity dev` for real-time console testing
-- **CLI**: Use `bun run dev` for manual testing and validation
+- **CLI-APP**: Use `bun run dev` for TUI testing with tool visibility
+- **CLI**: Use `bun run dev` for legacy CLI testing
 
 ### Manual Testing Workflows
 ```bash
-# Test agent responses
-agentuity dev  # Open console, test queries
+# Test agent responses and tool execution
+cd AgentPRD && agentuity dev  # Open console, test queries
 
-# Test CLI functionality
+# Test modern TUI with tool streaming
+cd CLI-APP && bun run dev
+# Test inline tool calls, reasoning display, slash commands
+
+# Test legacy CLI functionality
 cd CLI && bun run dev
 # Test REPL commands, configuration, agent communication
 ```
@@ -239,10 +298,20 @@ This is a production-ready product management suite built with Agentuity. Both c
 - [Bun Documentation](https://bun.sh/docs)
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/)
 
+## 🚀 What's New
+
+### v0.2.0 - Claude Code-Style Tool Streaming
+- **Inline tool call visibility** - See what tools the agent is using in real-time
+- **Tool execution transparency** - Arguments and results displayed as they happen
+- **Improved AI reasoning display** - Toggle with `/reasoning` command
+- **Modern TUI with React/Ink** - Enhanced terminal user experience
+- **7 context management tools** - Work contexts, PRD storage, and more
+
 ## 🆘 Support
 
 - [Agentuity Discord Community](https://discord.com/invite/vtn3hgUfuc)
 - [Agentuity Support](https://agentuity.dev/support)
+- [CLI-APP Documentation](CLI-APP/README.md)
 - [CLI Help](CLI/README.md)
 - [Agent Documentation](AgentPRD/README.md)
 

@@ -10,6 +10,7 @@ import { useAgent } from '../../hooks/useAgent.js';
 import { useApproval } from '../../hooks/useApproval.js';
 import { generateId } from '../../utils/helpers.js';
 import { parseSlashCommand, executeSlashCommand, type SlashCommandContext } from '../../utils/slashCommands.js';
+import type { ToolEvent } from '../../types.js';
 
 interface ChatContainerProps {
   initialPrompt?: string;
@@ -26,8 +27,15 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
   onShowHelp,
   onCloseHelp
 }) => {
-  const { messages, setMessages } = useChatContext();
+  const { messages, setMessages, toolEvents, setToolEvents } = useChatContext();
   const { approvalState, showApproval, handleApprove, handleDeny, handleEdit } = useApproval();
+
+  // Clean up old tool events (keep last 50)
+  useEffect(() => {
+    if (toolEvents.length > 50) {
+      setToolEvents(prev => prev.slice(-50));
+    }
+  }, [toolEvents, setToolEvents]);
   
   const { sendMessage, isLoading, error } = useAgent({
     approvalMode: 'suggest',
@@ -36,6 +44,9 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
       if (response.actions && response.actions.length > 0) {
         showApproval(response.actions, 'The agent wants to perform the following actions:');
       }
+    },
+    onToolEvent: (toolEvent: ToolEvent) => {
+      setToolEvents(prev => [...prev, toolEvent]);
     }
   });
 
@@ -83,8 +94,10 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
       
       if (['clear', 'c'].includes(command)) {
         setMessages([]);
+        setToolEvents([]);
         return;
       }
+      
       
       if (['quit', 'exit', 'q'].includes(command)) {
         process.exit(0);
@@ -119,6 +132,7 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
     <Box flexDirection="column">
       {/* Message Area */}
       <MessageHistory />
+      
       
       {/* Show approval dialog if needed */}
       {approvalState.isShowingApproval && (
