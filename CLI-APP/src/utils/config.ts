@@ -118,6 +118,17 @@ export class ConfigManager {
   getConfigPath(): string {
     return this.configPath;
   }
+  
+  // Check if this is the first time setup
+  isFirstTimeSetup(): boolean {
+    return !existsSync(this.configPath) || !this.get('agentUrl');
+  }
+  
+  // Validate if configuration is complete
+  isConfigured(): boolean {
+    const url = this.get('agentUrl');
+    return !!(url && url.trim());
+  }
 }
 
 // Singleton instance

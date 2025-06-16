@@ -22,8 +22,12 @@ export const MessageHistory: React.FC = () => {
         <Box key={message.id} marginY={1}>
           <Box flexDirection="column">
             <Box>
-              <Text color={message.type === 'user' ? 'blue' : 'green'} bold>
-                {message.type === 'user' ? '👤 You' : '🤖 Agent'}
+              <Text color={
+                message.type === 'user' ? 'blue' : 
+                message.type === 'system' ? 'yellow' : 'green'
+              } bold>
+                {message.type === 'user' ? '👤 You' : 
+                 message.type === 'system' ? 'ℹ️  System' : '🤖 Agent'}
               </Text>
               <Text color="gray" dimColor>
                 {' '}• {message.timestamp.toLocaleTimeString()}
@@ -42,6 +46,8 @@ export const MessageHistory: React.FC = () => {
                     <Text color="green">{'█'}</Text>
                   )}
                 </Box>
+              ) : message.type === 'system' ? (
+                <Text color="yellow">{message.content}</Text>
               ) : (
                 <Text>{message.content}</Text>
               )}

@@ -54,10 +54,30 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
     if (isSlashCommand) {
       // Create slash command context
       const slashContext: SlashCommandContext = {
-        setShowHelp: () => {}, // Will be handled by parent
-        clearMessages: () => setMessages([])
+        setShowHelp: () => onShowHelp?.(),
+        setShowExport: () => {}, // TODO: Implement export modal
+        setShowSidebar: () => {}, // TODO: Implement sidebar toggle
+        clearMessages: () => setMessages([]),
+        exportConversation: () => {}, // TODO: Implement export function
+        showMessage: (message: string) => {
+          // Add system message to show command response
+          const systemMessage = {
+            id: generateId(),
+            type: 'system' as const,
+            content: message,
+            timestamp: new Date()
+          };
+          setMessages(prev => [...prev, systemMessage]);
+        }
       };
 
+      // Try to execute slash command locally first
+      const wasHandled = executeSlashCommand(command, args, slashContext);
+      
+      if (wasHandled) {
+        return; // Command was handled locally
+      }
+      
       // Handle UI commands locally
       if (['help', 'h', '?'].includes(command)) {
         onShowHelp?.();
