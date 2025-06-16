@@ -10,7 +10,7 @@ export const MessageHistory: React.FC = () => {
     return (
       <Box justifyContent="center" alignItems="center" height="100%">
         <Text color="gray">
-          Welcome! Start a conversation by typing a message below.
+          Welcome! Start a product conversation below. /help for commands.
         </Text>
       </Box>
     );

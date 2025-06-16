@@ -74,27 +74,13 @@ export const CommandInput: React.FC<CommandInputProps> = ({
 
   return (
     <Box borderStyle="round" borderColor={isStreaming ? "yellow" : "cyan"} paddingX={1}>
-      <Text color={isStreaming ? "yellow" : "cyan"} bold>
-        {'> '}
-      </Text>
       <Text>
-        {input}
+        <Text color={isStreaming ? "yellow" : "cyan"} bold>{'> '}</Text>
+        {input && <Text>{input}</Text>}
+        {displayPlaceholder && <Text color="gray" dimColor>{displayPlaceholder}</Text>}
+        {statusText && <Text color="yellow" dimColor>{statusText}</Text>}
+        {!isStreaming && <Text color="cyan">{'█'}</Text>}
       </Text>
-      {displayPlaceholder && (
-        <Text color="gray" dimColor>
-          {displayPlaceholder}
-        </Text>
-      )}
-      {statusText && (
-        <Text color="yellow" dimColor>
-          {statusText}
-        </Text>
-      )}
-      {!isStreaming && (
-        <Text color="cyan">
-          {'█'} {/* Cursor */}
-        </Text>
-      )}
     </Box>
   );
 };

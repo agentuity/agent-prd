@@ -85,7 +85,7 @@ export const parseSlashCommand = (input: string): { command: string; args: strin
 };
 
 export const executeSlashCommand = (command: string, args: string[], context: SlashCommandContext): boolean => {
-  const slashCommand = slashCommands.find(cmd => 
+  const slashCommand = slashCommands.find(cmd =>
     cmd.name === command || (cmd.aliases && cmd.aliases.includes(command))
   );
 
