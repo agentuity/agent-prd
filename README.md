@@ -30,7 +30,6 @@ A comprehensive AI-powered product management solution built with **Agentuity**,
 The suite consists of three complementary components:
 - **AgentPRD**: Cloud agent handling AI intelligence, tool execution, and data persistence
 - **CLI-APP**: Modern terminal UI with real-time streaming and inline tool visibility
-- **CLI** (Legacy): Original lightweight CLI interface
 
 The modern CLI-APP provides Claude Code-style transparency, showing tool calls inline as they happen.
 
@@ -78,16 +77,6 @@ bun install
 bun run dev
 ```
 
-#### Legacy CLI
-
-For the original CLI:
-
-```bash
-cd CLI
-bun install
-bun run dev
-```
-
 ### Production Deployment
 
 Deploy the cloud agent:
@@ -101,13 +90,6 @@ Build the CLI-APP for distribution:
 
 ```bash
 cd CLI-APP
-bun run build
-```
-
-Or build the legacy CLI:
-
-```bash
-cd CLI
 bun run build
 ```
 
@@ -172,19 +154,6 @@ bun run build
 bun run start
 ```
 
-### Legacy CLI
-```bash
-# Development mode
-cd CLI
-bun run dev
-
-# Build for production
-bun run build
-
-# Test built binary
-bun run start
-```
-
 ### Project Structure
 ```
 ├── AgentPRD/              # Agentuity cloud agent
@@ -201,13 +170,6 @@ bun run start
 │   │   ├── client/        # Agent communication with streaming
 │   │   ├── utils/         # Slash commands, config, streaming
 │   │   └── types.ts       # TypeScript definitions
-│   └── package.json
-├── CLI/                   # Legacy terminal CLI interface
-│   ├── src/
-│   │   ├── commands/      # CLI command handlers
-│   │   ├── repl/          # Interactive REPL
-│   │   ├── client/        # Agent communication
-│   │   └── utils/         # Configuration & utilities
 │   └── package.json
 ├── AGENT.md              # Development guidelines
 └── CLAUDE.md             # Claude Code guidance
@@ -263,7 +225,6 @@ Both components support environment variable configuration:
 ### Interactive Testing
 - **AgentPRD**: Use `agentuity dev` for real-time console testing
 - **CLI-APP**: Use `bun run dev` for TUI testing with tool visibility
-- **CLI**: Use `bun run dev` for legacy CLI testing
 
 ### Manual Testing Workflows
 ```bash
@@ -272,11 +233,6 @@ cd AgentPRD && agentuity dev  # Open console, test queries
 
 # Test modern TUI with tool streaming
 cd CLI-APP && bun run dev
-# Test inline tool calls, reasoning display, slash commands
-
-# Test legacy CLI functionality
-cd CLI && bun run dev
-# Test REPL commands, configuration, agent communication
 ```
 
 ## 🤝 Contributing
