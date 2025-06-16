@@ -24,29 +24,28 @@ export const HelpOverlay: React.FC<HelpOverlayProps> = ({ onClose }) => {
   ];
 
   const slashCommands = [
-    { cmd: '/help', description: 'Show available commands' },
+    { cmd: '/help', description: 'Show this help dialog' },
     { cmd: '/clear', description: 'Clear conversation history' },
-    { cmd: '/export', description: 'Export conversation' },
-    { cmd: '/config', description: 'Show configuration' },
-    { cmd: '/session', description: 'Manage session' },
-    { cmd: '/prd <topic>', description: 'Create a PRD document' },
-    { cmd: '/brainstorm <idea>', description: 'Brainstorm session' },
-    { cmd: '/coach <question>', description: 'PM coaching' },
+    { cmd: '/export', description: 'Export conversation to file' },
+    { cmd: '/prd show <id>', description: 'Show specific PRD by ID' },
+    { cmd: '/prd delete <id>', description: 'Delete specific PRD by ID' },
+    { cmd: '/prd export <id>', description: 'Export specific PRD by ID' },
+    { cmd: '/prds', description: 'List and manage PRDs' },
+    { cmd: '/context set <desc>', description: 'Set work context' },
+    { cmd: '/context get', description: 'Show current context' },
+    { cmd: '/create-prd <topic>', description: 'Create new PRD' },
+    { cmd: '/brainstorm <topic>', description: 'Start brainstorming' },
+    { cmd: '/coach <question>', description: 'Get PM coaching' },
+    { cmd: '/history', description: 'Show work history' },
+    { cmd: '/reasoning', description: 'Toggle AI reasoning display' },
   ];
 
-  const approvalKeys = [
-    { key: 'Y', description: 'Approve all pending actions' },
-    { key: 'N', description: 'Deny all pending actions' },
-    { key: 'E', description: 'Edit actions before approval' },
-    { key: 'A', description: 'Always approve similar actions' },
-    { key: '↑/↓', description: 'Navigate through actions' },
-  ];
+
 
   return (
     <Box 
       borderStyle="double" 
       borderColor="yellow" 
-      backgroundColor="black"
       padding={1}
       flexDirection="column"
       marginY={1}
@@ -58,80 +57,39 @@ export const HelpOverlay: React.FC<HelpOverlayProps> = ({ onClose }) => {
         </Text>
       </Box>
       
-      <Box flexDirection="row" flexGrow={1}>
-        {/* Left Column - Keyboard Shortcuts */}
-        <Box flexDirection="column" flexBasis="33%" marginRight={2}>
-          <Text color="cyan" bold underline marginBottom={1}>
-            Keyboard Shortcuts
-          </Text>
-          {shortcuts.map((shortcut, index) => (
-            <Box key={index} marginBottom={0}>
-              <Text color="green" bold>
-                {shortcut.key.padEnd(8)}
-              </Text>
-              <Text color="white">
-                {shortcut.description}
-              </Text>
-            </Box>
-          ))}
+      {/* Simple Vertical List */}
+      <Box flexDirection="column">
+        
+        {/* Slash Commands Section */}
+        <Box marginBottom={1}>
+          <Text color="blue" bold>💬 Slash Commands:</Text>
         </Box>
         
-        {/* Middle Column - Slash Commands */}
-        <Box flexDirection="column" flexBasis="33%" marginRight={2}>
-          <Text color="blue" bold underline marginBottom={1}>
-            Slash Commands
-          </Text>
-          {slashCommands.map((command, index) => (
-            <Box key={index} marginBottom={0}>
-              <Text color="blue" bold>
-                {command.cmd}
-              </Text>
-              <Box marginTop={0} paddingLeft={2}>
-                <Text color="gray">
-                  {command.description}
-                </Text>
-              </Box>
-            </Box>
-          ))}
-        </Box>
-        
-        {/* Right Column - Approval Keys */}
-        <Box flexDirection="column" flexBasis="33%">
-          <Text color="yellow" bold underline marginBottom={1}>
-            Approval Mode
-          </Text>
-          {approvalKeys.map((key, index) => (
-            <Box key={index} marginBottom={0}>
-              <Text color="yellow" bold>
-                {key.key.padEnd(8)}
-              </Text>
-              <Text color="white">
-                {key.description}
-              </Text>
-            </Box>
-          ))}
-          
-          <Box marginTop={2} borderStyle="single" borderColor="gray" padding={1}>
-            <Text color="gray" bold>
-              Tips:
-            </Text>
-            <Text color="gray">
-              • Start typing to begin a conversation
-            </Text>
-            <Text color="gray">
-              • Use /prd, /brainstorm, /coach for specific modes
-            </Text>
-            <Text color="gray">
-              • Approval dialogs appear for file operations
-            </Text>
+        {slashCommands.map((command, index) => (
+          <Box key={index} marginBottom={1}>
+            <Text color="blue" bold>{command.cmd.padEnd(20)}</Text>
+            <Text color="gray">{command.description}</Text>
           </Box>
+        ))}
+        
+        {/* Keyboard Shortcuts Section */}
+        <Box marginTop={1} marginBottom={1}>
+          <Text color="cyan" bold>⌨️  Keyboard Shortcuts:</Text>
         </Box>
+        
+        {shortcuts.slice(0, 5).map((shortcut, index) => (
+          <Box key={index} marginBottom={1}>
+            <Text color="green" bold>{shortcut.key.padEnd(12)}</Text>
+            <Text color="white">{shortcut.description}</Text>
+          </Box>
+        ))}
+        
       </Box>
       
       {/* Footer */}
-      <Box marginTop={1} justifyContent="center" borderTop borderColor="gray" paddingTop={1}>
+      <Box marginTop={1} justifyContent="center">
         <Text color="gray" italic>
-          Press ESC, Q, or ? to close this help overlay
+          Press ESC, Q, or ? to close help • Start typing to begin conversation
         </Text>
       </Box>
     </Box>

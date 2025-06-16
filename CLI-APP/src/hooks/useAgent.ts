@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { AgentClient, type AgentResponse, type ClientOptions } from '../client/agent-client.js';
 import { useChatContext } from '../context/ChatContext.js';
 import { generateId } from '../utils/helpers.js';
+import { StreamingHandler } from '../utils/streaming.js';
 
 interface UseAgentOptions extends ClientOptions {
   onStreamChunk?: (chunk: string) => void;
@@ -47,11 +48,10 @@ export const useAgent = (options: UseAgentOptions = { approvalMode: 'suggest' })
 
       let fullContent = '';
 
-      // Use streaming for real-time updates
-      const response = await client.streamMessage(
-        message,
-        command,
+      // Create enhanced streaming handler with reasoning detection
+      const streamingHandler = new StreamingHandler(
         (chunk: string) => {
+          // Regular content chunk
           fullContent += chunk;
           setMessages(prev => 
             prev.map(msg => 
@@ -61,8 +61,33 @@ export const useAgent = (options: UseAgentOptions = { approvalMode: 'suggest' })
             )
           );
           options.onStreamChunk?.(chunk);
+        },
+        (reasoning: string) => {
+          // Reasoning/thinking content
+          if (StreamingHandler.isReasoningEnabled()) {
+            // Add reasoning as a temporary system message
+            const reasoningId = generateId();
+            const reasoningMessage = {
+              id: reasoningId,
+              type: 'system' as const,
+              content: reasoning,
+              timestamp: new Date()
+            };
+            setMessages(prev => [...prev, reasoningMessage]);
+          }
         }
       );
+
+      // Use streaming for real-time updates
+      const response = await client.streamMessage(
+        message,
+        command,
+        (chunk: string) => {
+          streamingHandler.processChunk(chunk);
+        }
+      );
+
+      streamingHandler.finish();
 
       // Mark streaming as complete
       setMessages(prev => 

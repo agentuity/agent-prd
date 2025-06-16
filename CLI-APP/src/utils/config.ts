@@ -26,7 +26,7 @@ export class ConfigManager {
   private config: Config;
   
   constructor() {
-    this.configDir = join(homedir(), '.agentpm');
+    this.configDir = join(homedir(), '.config', 'agentpm');
     this.configPath = join(this.configDir, 'config.json');
     this.config = this.loadConfig();
   }

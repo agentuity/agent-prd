@@ -26,7 +26,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
     { value: 'full-auto', label: 'Full-auto (agent operates autonomously)' }
   ];
 
-  useInput((input, key) => {
+  useInput((inputChar, key) => {
     if (currentStep === 'welcome') {
       if (key.return) {
         setCurrentStep('agentUrl');
@@ -36,20 +36,34 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
         setAgentUrl(inputValue.trim());
         setInputValue('');
         setCurrentStep('apiKey');
-      } else if (key.backspace) {
+        return;
+      }
+      
+      if (key.backspace || key.delete) {
         setInputValue(prev => prev.slice(0, -1));
-      } else if (input && !key.ctrl && !key.meta) {
-        setInputValue(prev => prev + input);
+        return;
+      }
+      
+      // Handle regular character input
+      if (!key.ctrl && !key.meta && inputChar) {
+        setInputValue(prev => prev + inputChar);
       }
     } else if (currentStep === 'apiKey') {
       if (key.return) {
         setApiKey(inputValue.trim());
         setInputValue('');
         setCurrentStep('approvalMode');
-      } else if (key.backspace) {
+        return;
+      }
+      
+      if (key.backspace || key.delete) {
         setInputValue(prev => prev.slice(0, -1));
-      } else if (input && !key.ctrl && !key.meta) {
-        setInputValue(prev => prev + input);
+        return;
+      }
+      
+      // Handle regular character input
+      if (!key.ctrl && !key.meta && inputChar) {
+        setInputValue(prev => prev + inputChar);
       }
     } else if (currentStep === 'approvalMode') {
       if (key.upArrow && selectedOption > 0) {

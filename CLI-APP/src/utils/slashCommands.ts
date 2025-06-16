@@ -1,16 +1,15 @@
+import { StreamingHandler } from './streaming.js';
+
 export interface SlashCommand {
   name: string;
   description: string;
   aliases?: string[];
-  handler: (args: string[], context: SlashCommandContext) => Promise<void> | void;
+  handler: (args: string[], context: SlashCommandContext) => Promise<boolean | void> | boolean | void;
 }
 
 export interface SlashCommandContext {
   setShowHelp: (show: boolean) => void;
-  setShowExport: (show: boolean) => void;
-  setShowSidebar: (show: boolean) => void;
   clearMessages: () => void;
-  exportConversation: (format: string, options: any) => any;
   showMessage: (message: string) => void;
 }
 
@@ -28,15 +27,8 @@ export const slashCommands: SlashCommand[] = [
     description: 'Export conversation to file',
     aliases: ['e'],
     handler: (args, context) => {
-      context.setShowExport(true);
-    }
-  },
-  {
-    name: 'sidebar',
-    description: 'Toggle sidebar with session info',
-    aliases: ['s', 'info'],
-    handler: (args, context) => {
-      context.setShowSidebar(true);
+      // This should be handled by the agent
+      return false; // Send to agent
     }
   },
   {
@@ -49,10 +41,9 @@ export const slashCommands: SlashCommand[] = [
   },
   {
     name: 'prd',
-    description: 'Create a Product Requirements Document',
+    description: 'Work with a specific PRD (show/delete/export)',
     handler: (args, context) => {
-      // This will be handled by the agent
-      return;
+      return handlePRDCommand(args, context);
     }
   },
   {
@@ -75,7 +66,8 @@ export const slashCommands: SlashCommand[] = [
     name: 'context',
     description: 'Manage work context and goals',
     handler: (args, context) => {
-      handleContextCommand(args, context);
+      // This should be handled by the agent, not locally
+      return false; // Send to agent
     }
   },
   {
@@ -90,7 +82,8 @@ export const slashCommands: SlashCommand[] = [
     name: 'prds',
     description: 'List and manage your PRDs',
     handler: (args, context) => {
-      handlePrdsCommand(args, context);
+      // This should be handled by the agent, not locally
+      return false; // Send to agent
     }
   },
   {
@@ -98,6 +91,13 @@ export const slashCommands: SlashCommand[] = [
     description: 'Show past PRDs and work',
     handler: (args, context) => {
       handleHistoryCommand(args, context);
+    }
+  },
+  {
+    name: 'reasoning',
+    description: 'Toggle display of AI reasoning process',
+    handler: (args, context) => {
+      handleReasoningToggle(args, context);
     }
   }
 ];
@@ -120,134 +120,60 @@ export const executeSlashCommand = (command: string, args: string[], context: Sl
   );
 
   if (slashCommand) {
-    slashCommand.handler(args, context);
+    const result = slashCommand.handler(args, context);
+    // If handler returns false, command should be sent to agent
+    if (result === false) {
+      return false;
+    }
     return true;
   }
 
   return false;
 };
 
-// Context management storage (in-memory for now)
-interface WorkContext {
-  id: string;
-  name: string;
-  description: string;
-  goals: string[];
-  created: Date;
-  lastUsed: Date;
-}
 
-let currentContext: WorkContext | null = null;
-let contexts: WorkContext[] = [];
 
-// Context command handlers
-function handleContextCommand(args: string[], context: SlashCommandContext): void {
-  const [action, ...rest] = args;
+// PRD command handlers
+function handlePRDCommand(args: string[], context: SlashCommandContext): boolean {
+  const [action, id] = args;
   
   if (!action) {
-    context.showMessage(`Context commands:
-/context set <description> - Set current work context
-/context get - Show current context
-/context list - List all contexts
-/context switch <name> - Switch to a context
-
-Current context: ${currentContext ? currentContext.name : 'None'}`);
-    return;
+    context.showMessage('Please specify an action: /prd <show|delete|export> [id]');
+    return true;
   }
   
   switch (action.toLowerCase()) {
-    case 'set':
-      const description = rest.join(' ');
-      if (!description) {
-        context.showMessage('Please provide a context description: /context set <description>');
-        return;
+    case 'show':
+      if (!id) {
+        context.showMessage('Please specify a PRD ID: /prd show <id>');
+        return true;
       }
+      context.showMessage(`📋 PRD #${id}:
+Retrieving PRD from storage...
+
+PRD display functionality coming soon!`);
+      return true;
       
-      currentContext = {
-        id: `ctx-${Date.now()}`,
-        name: description.slice(0, 30) + (description.length > 30 ? '...' : ''),
-        description,
-        goals: [],
-        created: new Date(),
-        lastUsed: new Date()
-      };
-      
-      // Add to contexts list if not already there
-      const existingIndex = contexts.findIndex(c => c.description === description);
-      if (existingIndex >= 0) {
-        contexts[existingIndex] = currentContext;
-      } else {
-        contexts.push(currentContext);
+    case 'delete':
+      if (!id) {
+        context.showMessage('Please specify a PRD ID: /prd delete <id>');
+        return true;
       }
+      context.showMessage(`⚠️ Delete PRD #${id}? This cannot be undone.
+Delete functionality coming soon!`);
+      return true;
       
-      context.showMessage(`✓ Context set: ${currentContext.name}`);
-      break;
-      
-    case 'get':
-      if (!currentContext) {
-        context.showMessage('No active context. Use /context set <description> to set one.');
-      } else {
-        context.showMessage(`Current context: ${currentContext.name}
-Description: ${currentContext.description}
-Created: ${currentContext.created.toLocaleDateString()}`);
+    case 'export':
+      if (!id) {
+        context.showMessage('Please specify a PRD ID: /prd export <id>');
+        return true;
       }
-      break;
-      
-    case 'list':
-      if (contexts.length === 0) {
-        context.showMessage('No contexts saved. Use /context set <description> to create one.');
-      } else {
-        const list = contexts.map((ctx, i) => `${i + 1}. ${ctx.name} (${ctx.created.toLocaleDateString()})`).join('\n');
-        context.showMessage(`Saved contexts:\n${list}`);
-      }
-      break;
-      
-    case 'switch':
-      const targetName = rest.join(' ');
-      if (!targetName) {
-        context.showMessage('Please specify context name: /context switch <name>');
-        return;
-      }
-      
-      const targetContext = contexts.find(c => c.name.toLowerCase().includes(targetName.toLowerCase()));
-      if (!targetContext) {
-        context.showMessage(`Context not found: ${targetName}`);
-      } else {
-        currentContext = targetContext;
-        currentContext.lastUsed = new Date();
-        context.showMessage(`✓ Switched to context: ${targetContext.name}`);
-      }
-      break;
+      // Let the agent handle the export - return false to send to agent
+      return false;
       
     default:
-      context.showMessage(`Unknown context action: ${action}. Use /context for help.`);
-  }
-}
-
-// PRDs command handlers
-function handlePrdsCommand(args: string[], context: SlashCommandContext): void {
-  const [action] = args;
-  
-  switch (action?.toLowerCase()) {
-    case 'list':
-      context.showMessage('📋 Recent PRDs:\n(PRD management coming soon - will integrate with agent history)');
-      break;
-      
-    case 'recent':
-      context.showMessage('📋 Recent PRDs:\n(PRD management coming soon - will integrate with agent history)');
-      break;
-      
-    case 'search':
-      context.showMessage('🔍 PRD Search:\n(PRD search coming soon - will integrate with agent history)');
-      break;
-      
-    default:
-      context.showMessage(`PRD commands:
-/prds list - List all PRDs
-/prds recent - Show recent PRDs
-/prds search <term> - Search PRDs
-
-(Full PRD management coming soon)`);
+      context.showMessage(`Unknown action: ${action}. Use: show, delete, or export`);
+      return true;
   }
 }
 
@@ -256,7 +182,22 @@ function handleHistoryCommand(args: string[], context: SlashCommandContext): voi
   context.showMessage(`📚 Work History:
 (History management coming soon - will show past PRDs, brainstorms, and coaching sessions)
 
-For now, use the sidebar to see current session information.`);
+For now, check your conversation history above.`);
+}
+
+// Reasoning toggle handler
+function handleReasoningToggle(args: string[], context: SlashCommandContext): void {
+  const currentSetting = process.env.AGENTPM_SHOW_REASONING === 'true';
+  const newSetting = !currentSetting;
+  
+  // Toggle the environment variable
+  process.env.AGENTPM_SHOW_REASONING = newSetting.toString();
+  
+  if (newSetting) {
+    context.showMessage('✓ Reasoning display enabled\nYou will now see the AI\'s thinking process');
+  } else {
+    context.showMessage('○ Reasoning display disabled\nOnly final responses will be shown');
+  }
 }
 
 export const getSlashCommandHelp = (): string => {

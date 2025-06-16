@@ -55,10 +55,7 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
       // Create slash command context
       const slashContext: SlashCommandContext = {
         setShowHelp: () => onShowHelp?.(),
-        setShowExport: () => {}, // TODO: Implement export modal
-        setShowSidebar: () => {}, // TODO: Implement sidebar toggle
         clearMessages: () => setMessages([]),
-        exportConversation: () => {}, // TODO: Implement export function
         showMessage: (message: string) => {
           // Add system message to show command response
           const systemMessage = {
