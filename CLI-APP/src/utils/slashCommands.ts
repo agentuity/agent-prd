@@ -71,6 +71,24 @@ export const slashCommands: SlashCommand[] = [
     }
   },
   {
+    name: 'search',
+    description: 'Search across PRDs, notes, and contexts',
+    aliases: ['s', 'find'],
+    handler: (args, context) => {
+      // This should be handled by the agent
+      return false; // Send to agent
+    }
+  },
+  {
+    name: 'note',
+    description: 'Capture quick thoughts and ideas',
+    aliases: ['n'],
+    handler: (args, context) => {
+      // This should be handled by the agent
+      return false; // Send to agent
+    }
+  },
+  {
     name: 'create-prd',
     description: 'Interactive PRD creation with custom structure',
     handler: (args, context) => {
@@ -90,7 +108,7 @@ export const slashCommands: SlashCommand[] = [
     name: 'history',
     description: 'Show past PRDs and work',
     handler: (args, context) => {
-      handleHistoryCommand(args, context);
+      return handleHistoryCommand(args, context);
     }
   },
   {
@@ -98,6 +116,15 @@ export const slashCommands: SlashCommand[] = [
     description: 'Toggle display of AI reasoning process',
     handler: (args, context) => {
       handleReasoningToggle(args, context);
+    }
+  },
+  {
+    name: 'visualize',
+    description: 'Create charts and visual representations',
+    aliases: ['viz', 'chart'],
+    handler: (args, context) => {
+      // This should be handled by the agent
+      return false; // Send to agent
     }
   },
 ];
@@ -148,20 +175,17 @@ function handlePRDCommand(args: string[], context: SlashCommandContext): boolean
         context.showMessage('Please specify a PRD ID: /prd show <id>');
         return true;
       }
-      context.showMessage(`📋 PRD #${id}:
-Retrieving PRD from storage...
-
-PRD display functionality coming soon!`);
-      return true;
+      // Let the agent handle retrieving and displaying the PRD
+      return false;
       
     case 'delete':
       if (!id) {
         context.showMessage('Please specify a PRD ID: /prd delete <id>');
         return true;
       }
-      context.showMessage(`⚠️ Delete PRD #${id}? This cannot be undone.
-Delete functionality coming soon!`);
-      return true;
+      // Let the agent handle the delete operation
+      // Note: Agent should confirm before deleting
+      return false;
       
     case 'export':
       if (!id) {
@@ -178,11 +202,9 @@ Delete functionality coming soon!`);
 }
 
 // History command handler
-function handleHistoryCommand(args: string[], context: SlashCommandContext): void {
-  context.showMessage(`📚 Work History:
-(History management coming soon - will show past PRDs, brainstorms, and coaching sessions)
-
-For now, check your conversation history above.`);
+function handleHistoryCommand(args: string[], context: SlashCommandContext): boolean {
+  // Let the agent handle showing history from KV storage
+  return false;
 }
 
 // Reasoning toggle handler

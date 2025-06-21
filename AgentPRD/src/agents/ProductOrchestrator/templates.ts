@@ -1,6 +1,6 @@
 /**
  * PRD Templates for AgentPRD
- * 
+ *
  * Professional product requirements document templates for different use cases
  */
 
@@ -12,7 +12,7 @@ export interface PRDTemplate {
 }
 
 export const PRD_TEMPLATES = {
-  'feature': {
+  feature: {
     name: 'Feature PRD Template',
     description: 'Standard template for new feature requirements',
     sections: [
@@ -76,18 +76,40 @@ export const PRD_TEMPLATES = {
       '- **Launch:** {launch_timeline}',
     ],
     variables: [
-      'feature_name', 'problem', 'solution', 'metrics', 'current_state',
-      'pain_point_1', 'pain_point_2', 'pain_point_3', 'user_type', 
-      'functionality', 'benefit', 'requirement_1', 'requirement_2', 
-      'requirement_3', 'performance_req', 'security_req', 'scalability_req',
-      'architecture_overview', 'api_requirements', 'primary_metric',
-      'secondary_metrics', 'phase_1', 'phase_2', 'phase_3',
-      'technical_risk_1', 'business_risk_1', 'planning_timeline',
-      'dev_timeline', 'testing_timeline', 'launch_timeline'
-    ]
+      'feature_name',
+      'problem',
+      'solution',
+      'metrics',
+      'current_state',
+      'pain_point_1',
+      'pain_point_2',
+      'pain_point_3',
+      'user_type',
+      'functionality',
+      'benefit',
+      'requirement_1',
+      'requirement_2',
+      'requirement_3',
+      'performance_req',
+      'security_req',
+      'scalability_req',
+      'architecture_overview',
+      'api_requirements',
+      'primary_metric',
+      'secondary_metrics',
+      'phase_1',
+      'phase_2',
+      'phase_3',
+      'technical_risk_1',
+      'business_risk_1',
+      'planning_timeline',
+      'dev_timeline',
+      'testing_timeline',
+      'launch_timeline',
+    ],
   },
-  
-  'saas': {
+
+  saas: {
     name: 'SaaS Product PRD Template',
     description: 'Comprehensive template for SaaS product development',
     sections: [
@@ -147,17 +169,39 @@ export const PRD_TEMPLATES = {
       '- **CAC/LTV Ratio:** {cac_ltv}',
     ],
     variables: [
-      'product_name', 'market_size', 'target_audience', 'competitors',
-      'vision', 'mission', 'value_prop', 'primary_persona', 'role',
-      'goals', 'pain_points', 'core_feature_1', 'core_feature_2',
-      'core_feature_3', 'advanced_feature_1', 'advanced_feature_2',
-      'architecture', 'integration_1', 'integration_2', 'pricing',
-      'revenue', 'acquisition', 'launch_plan', 'channel_1', 'channel_2',
-      'arr_target', 'user_growth', 'churn_target', 'cac_ltv'
-    ]
+      'product_name',
+      'market_size',
+      'target_audience',
+      'competitors',
+      'vision',
+      'mission',
+      'value_prop',
+      'primary_persona',
+      'role',
+      'goals',
+      'pain_points',
+      'core_feature_1',
+      'core_feature_2',
+      'core_feature_3',
+      'advanced_feature_1',
+      'advanced_feature_2',
+      'architecture',
+      'integration_1',
+      'integration_2',
+      'pricing',
+      'revenue',
+      'acquisition',
+      'launch_plan',
+      'channel_1',
+      'channel_2',
+      'arr_target',
+      'user_growth',
+      'churn_target',
+      'cac_ltv',
+    ],
   },
 
-  'mobile': {
+  mobile: {
     name: 'Mobile App PRD Template',
     description: 'Specialized template for mobile application development',
     sections: [
@@ -212,13 +256,32 @@ export const PRD_TEMPLATES = {
       '{marketing_plan}',
     ],
     variables: [
-      'app_name', 'app_type', 'platforms', 'os_versions', 'user_flow',
-      'screen_1', 'screen_2', 'screen_3', 'core_feature_1', 'core_feature_2',
-      'core_feature_3', 'ios_features', 'android_features', 'app_size',
-      'load_time', 'battery_usage', 'min_ram', 'storage_req', 'network_req',
-      'dau_mau', 'session_length', 'retention', 'aso_strategy', 'marketing_plan'
-    ]
-  }
+      'app_name',
+      'app_type',
+      'platforms',
+      'os_versions',
+      'user_flow',
+      'screen_1',
+      'screen_2',
+      'screen_3',
+      'core_feature_1',
+      'core_feature_2',
+      'core_feature_3',
+      'ios_features',
+      'android_features',
+      'app_size',
+      'load_time',
+      'battery_usage',
+      'min_ram',
+      'storage_req',
+      'network_req',
+      'dau_mau',
+      'session_length',
+      'retention',
+      'aso_strategy',
+      'marketing_plan',
+    ],
+  },
 } as const;
 
 export type TemplateType = keyof typeof PRD_TEMPLATES;
@@ -233,14 +296,24 @@ export function listTemplates(): PRDTemplate[] {
 
 export function findBestTemplate(description: string): TemplateType {
   const desc = description.toLowerCase();
-  
-  if (desc.includes('mobile') || desc.includes('app') || desc.includes('ios') || desc.includes('android')) {
+
+  if (
+    desc.includes('mobile') ||
+    desc.includes('app') ||
+    desc.includes('ios') ||
+    desc.includes('android')
+  ) {
     return 'mobile';
   }
-  
-  if (desc.includes('saas') || desc.includes('platform') || desc.includes('software') || desc.includes('service')) {
+
+  if (
+    desc.includes('saas') ||
+    desc.includes('platform') ||
+    desc.includes('software') ||
+    desc.includes('service')
+  ) {
     return 'saas';
   }
-  
+
   return 'feature';
 }
