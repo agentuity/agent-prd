@@ -21,7 +21,12 @@ A comprehensive AI-powered product management solution built with **Agentuity**,
 - 🧠 **Feature Brainstorming**: AI-assisted ideation and strategic planning
 - 🎯 **PM Coaching**: Get personalized product management guidance and feedback
 - 🔧 **Real-time Tool Visibility**: Claude Code-style inline tool call streaming
-- 📋 **Context Management**: Maintain work context and PRD history across sessions
+- 🔍 **Full-Text Search**: Search across PRDs, notes, and contexts with advanced filters
+- 📊 **ASCII Visualizations**: Charts, progress bars, and timeline views in terminal
+- 📋 **Interactive Checklists**: Track PRD completion with keyboard navigation
+- 🗒️ **Quick Notes**: Capture thoughts and ideas with tagging support
+- 📈 **PRD Diff Viewer**: Track changes between PRD versions
+- 🎨 **Data Visualization**: Priority matrices, user journeys, and metrics dashboards
 - 📤 **Multi-format Export**: Export to PDF, Confluence, Markdown, and more
 - 🚀 **Agentuity Native**: Built for seamless deployment on Agentuity platform
 
@@ -108,12 +113,24 @@ bun run build
 # Start interactive session
 agentpm
 
-# Quick commands with real-time tool visibility
+# Core commands
 AgentPM> /create-prd mobile productivity app
 AgentPM> /brainstorm user onboarding
 AgentPM> /coach
+
+# Search and notes
+AgentPM> /search user authentication    # Search across PRDs and notes
+AgentPM> /note Remember to add SSO     # Quick note capture
+AgentPM> /s analytics                  # Search with alias
+
+# Visualization
+AgentPM> /visualize                    # Create charts and visualizations
+AgentPM> /viz priority matrix          # Visualize feature priorities
+
+# UI controls
 AgentPM> /reasoning  # Toggle AI reasoning display
 AgentPM> /clear     # Clear chat and tool history
+AgentPM> /help      # Show all commands
 ```
 
 Tool calls appear inline:
@@ -159,7 +176,11 @@ bun run start
 ├── AgentPRD/              # Agentuity cloud agent
 │   ├── src/
 │   │   ├── agents/        # Agent implementations with tool streaming
-│   │   └── tools/         # Context management tools (7 tools)
+│   │   └── tools/         # AI tools (15+ tools)
+│   │       ├── context-tools.ts    # Work context & PRD storage
+│   │       ├── search-tools.ts     # Full-text search & notes
+│   │       ├── prd-tools.ts        # PRD versioning & diffs
+│   │       └── visualization-tools.ts # Charts & visualizations
 │   ├── agentuity.yaml     # Agentuity configuration
 │   ├── biome.json         # Code formatting config
 │   └── package.json
@@ -213,6 +234,7 @@ Both components support environment variable configuration:
 - **Claude 4 Sonnet** with reasoning capabilities
 - **Tool streaming** via `fullStream` events
 - **KV storage** for session persistence
+- **15+ tools** for search, notes, visualization, and PRD management
 
 ### CLI-APP (Modern TUI)
 - **React + Ink** for terminal UI components
@@ -256,12 +278,20 @@ This is a production-ready product management suite built with Agentuity. Both c
 
 ## 🚀 What's New
 
+### v0.3.0 - Enhanced Search, Visualization & Notes
+- **Full-text search** - Search across PRDs, notes, and contexts with filters
+- **Quick notes** - Capture thoughts with `/note` command and tag support
+- **ASCII visualizations** - Charts, progress bars, timelines in terminal
+- **PRD diff viewer** - Track changes between PRD versions
+- **Interactive checklists** - Track PRD completion with keyboard navigation
+- **Feature priority matrix** - Visualize impact vs effort
+- **15+ AI tools** - Search, visualization, notes, and PRD management
+
 ### v0.2.0 - Claude Code-Style Tool Streaming
 - **Inline tool call visibility** - See what tools the agent is using in real-time
 - **Tool execution transparency** - Arguments and results displayed as they happen
 - **Improved AI reasoning display** - Toggle with `/reasoning` command
 - **Modern TUI with React/Ink** - Enhanced terminal user experience
-- **7 context management tools** - Work contexts, PRD storage, and more
 
 ## 🆘 Support
 

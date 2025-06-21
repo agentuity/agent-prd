@@ -9,6 +9,7 @@ interface ToolCallIndicatorProps {
 export const ToolCallIndicator: React.FC<ToolCallIndicatorProps> = ({ toolEvent }) => {
   const getToolIcon = (toolName: string): string => {
     const icons: Record<string, string> = {
+      // Context tools
       'set_work_context': '🎯',
       'get_work_context': '📋',
       'list_work_contexts': '📚',
@@ -16,6 +17,25 @@ export const ToolCallIndicator: React.FC<ToolCallIndicatorProps> = ({ toolEvent 
       'store_prd': '💾',
       'get_prd': '📄',
       'list_prds': '📋',
+      // Search tools
+      'search_prds': '🔍',
+      'search_all': '🔎',
+      'add_note': '📝',
+      'list_notes': '📒',
+      'get_suggestions': '💡',
+      // PRD tools
+      'update_prd': '✏️',
+      'get_prd_versions': '📊',
+      'get_prd_diff': '📈',
+      'add_prd_checklist': '☑️',
+      'get_prd_completion_status': '📊',
+      'delete_prd': '🗑️',
+      // Visualization tools
+      'create_feature_priority_chart': '📊',
+      'create_timeline_chart': '📅',
+      'create_metrics_dashboard': '📈',
+      'create_user_journey_map': '🗺️',
+      'visualize_prd_status': '📊',
     };
     return icons[toolName] || '🔧';
   };
